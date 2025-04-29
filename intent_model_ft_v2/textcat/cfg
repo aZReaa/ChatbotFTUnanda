@@ -1,0 +1,28 @@
+{
+  "labels":[
+    "greeting_ft",
+    "provide_name",
+    "goodbye_ft",
+    "thankyou_ft",
+    "info_spp_ft",
+    "cara_bayar_spp_ft",
+    "jadwal_kuliah_ft",
+    "fasilitas_umum_ft",
+    "info_lab_sipil",
+    "info_lab_informatika",
+    "info_lab_pertambangan",
+    "info_prodi_sipil",
+    "info_prodi_informatika",
+    "info_prodi_pertambangan",
+    "kontak_ft",
+    "tanya_biaya_praktikum",
+    "info_pmb_umum",
+    "info_jalur_pmb",
+    "info_biaya_pmb",
+    "cara_daftar_pmb",
+    "tanya_pembelajaran_prodi",
+    "tanya_pembelajaran_lab"
+  ],
+  "threshold":0.0,
+  "positive_label":null
+}
