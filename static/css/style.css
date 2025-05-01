@@ -1,52 +1,68 @@
 /* General Styles */
+:root {
+    --primary-color: #0072ff; /* Biru utama */
+    --primary-hover: #005bb5; /* Biru hover */
+    --secondary-bg: #f0f4f8; /* Background chatbox lebih lembut */
+    --user-bubble-bg: var(--primary-color);
+    --bot-bubble-bg: #e9e9eb;
+    --text-dark: #333333;
+    --text-light: #ffffff;
+    --text-secondary: #6c757d; /* Untuk timestamp */
+    --border-light: #e9ecef;
+    --font-family: 'Poppins', sans-serif;
+    --border-radius-main: 12px;
+    --border-radius-bubble: 18px;
+}
+
 body {
-    font-family: 'Poppins', sans-serif;
-    /* Gradient yang lebih halus dan mungkin sedikit berbeda */
-    background: linear-gradient(135deg, #6dd5ed, #2193b0);
-    /* background: linear-gradient(45deg, #00c6ff, #0072ff); /* Opsi: Pertahankan gradient asli jika suka */
+    font-family: var(--font-family);
+    /* Gradient lebih halus atau warna solid */
+    /* background: linear-gradient(135deg, #e0f7fa, #b2ebf2); */
+    background-color: #e8f1f9; /* Warna solid lembut */
     margin: 0;
-    padding: 20px; /* Menambah padding agar container tidak menempel di tepi layar kecil */
+    padding: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh; /* Gunakan min-height agar konten tidak terpotong jika lebih tinggi */
+    min-height: 100vh;
     box-sizing: border-box;
-    /* Menghapus animasi gradient jika dirasa terlalu mengganggu, opsional */
-    /* animation: gradientShift 10s ease-in-out infinite alternate; */
 }
 
 /* Container for the chatbot */
 .chat-container {
     background-color: #ffffff;
     width: 100%;
-    max-width: 500px; /* Sedikit lebih ramping */
-    border-radius: 12px; /* Sedikit lebih halus */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    max-width: 500px; /* Batas lebar */
+    border-radius: var(--border-radius-main);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
-    /* Menggunakan max-height agar lebih fleksibel */
     max-height: 90vh;
-    height: 85vh; /* Tetap beri height spesifik untuk tampilan awal */
-    overflow: hidden; /* Mencegah konten keluar dari border-radius */
-    animation: scaleIn 0.5s ease-out forwards;
-    transform: scale(0.95); /* Skala awal sedikit lebih besar */
+    height: 85vh; /* Sesuaikan tinggi jika perlu */
+    overflow: hidden;
 }
 
 /* Chat Header */
 .chat-header {
-    background-color: #0072ff; /* Mengambil warna dari gradient atau warna primer */
-    color: #ffffff;
-    padding: 15px 20px;
-    border-top-left-radius: 12px;
-    border-top-right-radius: 12px;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    padding: 18px 20px; /* Sedikit lebih tinggi */
+    border-top-left-radius: var(--border-radius-main);
+    border-top-right-radius: var(--border-radius-main);
     text-align: center;
-    flex-shrink: 0; /* Mencegah header menyusut */
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Garis halus pemisah */
 }
-
 .chat-header h1 {
     margin: 0;
-    font-size: 1.3em; /* Ukuran font disesuaikan */
+    font-size: 1.3em;
     font-weight: 600;
+}
+.chat-header p {
+    margin: 4px 0 0;
+    font-size: 0.85em;
+    font-weight: 300;
+    opacity: 0.9;
 }
 
 /* Chatbox container */
@@ -54,189 +70,194 @@ body {
     flex-grow: 1;
     overflow-y: auto;
     padding: 20px;
-    background-color: #f9f9f9; /* Warna latar sedikit berbeda */
+    background-color: var(--secondary-bg);
     display: flex;
     flex-direction: column;
-    gap: 12px; /* Jarak antar bubble */
-    /* Styling Scrollbar (Webkit) */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: #0072ff #f0f0f0; /* Firefox */
+    gap: 5px; /* Mengurangi gap antar wrapper, margin diatur di wrapper */
+    scroll-behavior: smooth; /* Scroll halus */
 }
 
-.chat-box::-webkit-scrollbar {
-    width: 8px;
+/* Wrapper untuk setiap pesan (bubble + timestamp) */
+.message-wrapper {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px; /* Jarak utama antar pesan */
+    max-width: 85%; /* Maks lebar wrapper */
+    opacity: 0;
+    transform: translateY(10px);
+    animation: messageIn 0.4s ease-out forwards;
 }
-
-.chat-box::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    border-radius: 4px;
+.message-wrapper.user-wrapper {
+    align-self: flex-end;
+    align-items: flex-end; /* Teks timestamp rata kanan */
 }
-
-.chat-box::-webkit-scrollbar-thumb {
-    background-color: #0072ff;
-    border-radius: 4px;
-    border: 2px solid #f0f0f0;
+.message-wrapper.bot-wrapper {
+    align-self: flex-start;
+    align-items: flex-start; /* Teks timestamp rata kiri */
 }
 
 /* Chat bubbles */
 .chat-bubble {
-    padding: 10px 15px;
-    border-radius: 18px; /* Radius lebih besar */
-    max-width: 75%; /* Sedikit lebih lebar */
+    padding: 12px 18px; /* Padding baru */
+    border-radius: var(--border-radius-bubble);
     line-height: 1.5;
     font-size: 0.95em;
-    opacity: 0; /* Mulai transparan untuk animasi */
-    transform: translateY(10px); /* Mulai sedikit di bawah untuk animasi */
-    animation: bubbleIn 0.4s ease-out forwards;
-    word-wrap: break-word; /* Memastikan teks panjang pindah baris */
+    font-weight: 400;
+    word-wrap: break-word;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); /* Bayangan halus */
+    position: relative; /* Untuk potensi elemen tambahan */
 }
 
 /* Bot bubble */
 .chat-bubble.bot {
-    background-color: #e9e9eb; /* Warna abu-abu lembut */
-    color: #333;
-    border-radius: 18px 18px 18px 5px; /* Sudut kiri bawah lebih tajam */
-    align-self: flex-start;
+    background-color: var(--bot-bubble-bg);
+    color: var(--text-dark);
+    /* Radius konsisten karena tidak ada avatar */
+    border-radius: var(--border-radius-bubble) var(--border-radius-bubble) var(--border-radius-bubble) var(--border-radius-bubble);
 }
 
 /* User bubble */
 .chat-bubble.user {
-    background-color: #007bff; /* Warna biru primer */
-    color: white;
-    border-radius: 18px 18px 5px 18px; /* Sudut kanan bawah lebih tajam */
-    align-self: flex-end;
+    background-color: var(--user-bubble-bg);
+    color: var(--text-light);
+    border-radius: var(--border-radius-bubble) var(--border-radius-bubble) 5px var(--border-radius-bubble);
 }
 
-/* Chat input form */
-.chat-form {
+/* Timestamp Styling */
+.timestamp {
+    font-size: 0.75em;
+    color: var(--text-secondary);
+    margin-top: 5px; /* Jarak dari bubble */
+    padding: 0 5px; /* Sedikit padding horizontal */
+}
+
+/* Chat Input Area Styling */
+.chat-input-area {
     display: flex;
     align-items: center;
     padding: 15px 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid var(--border-light);
     background-color: #ffffff;
-    flex-shrink: 0; /* Mencegah form menyusut */
+    flex-shrink: 0;
+    gap: 12px;
 }
 
 .chat-input {
     flex-grow: 1;
-    padding: 12px 18px;
-    border: 1px solid #dcdcdc;
-    border-radius: 25px; /* Bulat penuh */
-    font-size: 1em;
-    margin-right: 10px;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    border: none; /* Hapus border */
+    background-color: var(--secondary-bg); /* Warna seperti chatbox */
+    border-radius: 25px;
+    padding: 14px 20px; /* Padding lebih nyaman */
+    font-size: 0.95em;
     outline: none;
+    transition: background-color 0.3s, box-shadow 0.3s;
+    font-family: var(--font-family);
 }
 
 .chat-input:focus {
-    border-color: #0072ff;
-    box-shadow: 0 0 0 3px rgba(0, 114, 255, 0.15); /* Efek glow saat focus */
+    background-color: #e9e9eb; /* Sedikit lebih gelap saat fokus */
+    box-shadow: 0 0 0 2px rgba(0, 114, 255, 0.2); /* Shadow halus saat fokus */
+}
+.chat-input::placeholder {
+    color: #999;
 }
 
+/* Send Button */
 .send-button {
-    background-color: #0072ff;
+    background-color: var(--primary-color);
     color: white;
     border: none;
-    border-radius: 50%; /* Lingkaran sempurna */
-    width: 48px; /* Ukuran tetap */
-    height: 48px; /* Ukuran tetap */
+    border-radius: 50%;
+    width: 48px; /* Ukuran konsisten */
+    height: 48px;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s ease;
-    flex-shrink: 0; /* Mencegah tombol menyusut */
+    transition: background-color 0.3s, transform 0.1s ease-out;
+    flex-shrink: 0;
 }
 
 .send-button:hover {
-    background-color: #005bb5; /* Warna hover lebih gelap */
-    transform: scale(1.05); /* Sedikit membesar saat hover */
+    background-color: var(--primary-hover);
 }
-
 .send-button:active {
-    transform: scale(0.95); /* Sedikit mengecil saat diklik */
+    transform: scale(0.95); /* Efek tekan */
 }
 
 .send-button i {
-    font-size: 1.2em; /* Sesuaikan ukuran ikon jika perlu */
+    font-size: 1.2em; /* Ukuran ikon */
+    margin-left: 2px; /* Posisi ikon sedikit ke kanan */
 }
 
-/* Animations */
-@keyframes scaleIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.9);
+/* Typing Indicator Styling */
+.chat-bubble.bot .typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 8px 0; /* Padding untuk indicator */
+}
+.typing-indicator span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #b0b0b0; /* Warna titik */
+    margin: 0 2px;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+.typing-indicator span:nth-child(1) { animation-delay: 0s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typing {
+    0%, 80%, 100% {
+        transform: scale(0.5); /* Lebih kecil */
+        opacity: 0.5;
     }
-    100% {
+    40% {
+        transform: scale(1.0);
         opacity: 1;
-        transform: scale(1);
     }
 }
 
-/* Animasi gradient (jika diaktifkan kembali) */
-/* @keyframes gradientShift {
-    0% {
-        background: linear-gradient(135deg, #6dd5ed, #2193b0);
-    }
-    100% {
-        background: linear-gradient(135deg, #2193b0, #6dd5ed);
-    }
-} */
-
-@keyframes bubbleIn {
-    0% {
+/* Animations for message appearance */
+@keyframes messageIn {
+    from {
         opacity: 0;
-        transform: translateY(10px) scale(0.95);
+        transform: translateY(10px) scale(0.98);
     }
-    100% {
+    to {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
 }
 
-/* Responsive Design */
-@media screen and (max-width: 600px) {
-    body {
-        padding: 0; /* Hapus padding body di layar kecil */
-    }
-
+/* Responsiveness (Contoh sederhana) */
+@media (max-width: 600px) {
     .chat-container {
         max-width: 100%;
-        width: 100%;
-        height: 100vh; /* Full height di mobile */
-        max-height: 100vh;
-        border-radius: 0; /* Hapus border radius di mobile */
-        box-shadow: none; /* Hapus shadow di mobile */
+        height: 95vh; /* Hampir penuh layar */
+        max-height: 95vh;
+        border-radius: 0; /* Hapus radius di mobile */
+        box-shadow: none;
     }
-
+    body {
+        padding: 0; /* Hapus padding body */
+    }
     .chat-header {
         border-top-left-radius: 0;
         border-top-right-radius: 0;
-        padding: 12px 15px;
     }
-
-     .chat-header h1 {
-        font-size: 1.1em;
-    }
-
-    .chat-box {
-        padding: 15px;
-    }
-
-    .chat-form {
+    .chat-input-area {
         padding: 10px 15px;
     }
-
     .chat-input {
-        padding: 10px 15px;
-        font-size: 0.95em;
+        padding: 12px 18px;
     }
-
     .send-button {
         width: 42px;
         height: 42px;
     }
-
     .send-button i {
         font-size: 1em;
     }

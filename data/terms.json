@@ -1,0 +1,20 @@
+{
+    "prodi": {
+      "Teknik Sipil": ["teknik sipil", "sipil", "prodi sipil", "jurusan sipil"],
+      "Teknik Informatika": ["teknik informatika", "informatika", "ti", "inf", "prodi informatika", "jurusan ti", "ilmu komputer"],
+      "Teknik Pertambangan": ["teknik pertambangan", "pertambangan", "tambang", "prodi pertambangan", "jurusan tambang"]
+    },
+    "lab": {
+      "Lab Perkerasan Jalan Raya & Aspal": ["lab perkerasan jalan", "lab aspal", "lab jalan raya"],
+      "Lab Hidrolika": ["lab hidrolika", "lab aliran air", "lab mekanika fluida sipil"],
+      "Lab Mekanika Tanah": ["lab mekanika tanah", "lab mektan", "lab tanah"],
+      "Lab Struktur & Bahan": ["lab struktur dan bahan", "lab struktur", "lab bahan", "lab beton", "lab baja"],
+      "Lab Gambar Rekayasa": ["lab gambar rekayasa", "lab gambar teknik", "lab cad sipil"],
+      "Lab Software": ["lab software", "lab perangkat lunak", "lab pemrograman", "lab rpl"],
+      "Lab Hardware": ["lab hardware", "lab perangkat keras", "lab jaringan", "lab mikrokontroler", "lab sistem digital"],
+      "Lab Geologi Fisik": ["lab geologi fisik", "lab geofis"],
+      "Lab Perpetaan": ["lab perpetaan", "lab pemetaan", "lab survei", "lab gis tambang"],
+      "Lab Mineralogi dan Petrologi": ["lab mineralogi dan petrologi", "lab miner", "lab petro", "lab batuan tambang", "lab mineragrafi"],
+      "Lab Geologi Struktur": ["lab geologi struktur", "lab geostruk"]
+    }
+  }

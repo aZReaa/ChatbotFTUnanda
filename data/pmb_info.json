@@ -1,0 +1,35 @@
+{
+    "website": "https://pmb.unanda.ac.id/home",
+    "jalur": {
+      "Mandiri": {
+        "name": "Mandiri",
+        "description": "Jalur pendaftaran umum untuk lulusan SMA/SMK/Sederajat."
+      },
+      "RPL": {
+        "name": "Rekognisi Pembelajaran Lampau (RPL)",
+        "description": "Jalur khusus bagi calon mahasiswa yang memiliki pengalaman kerja atau pendidikan sebelumnya yang relevan."
+      }
+    },
+    "fees": {
+      "formulir": {
+        "name": "Biaya Formulir/Pendaftaran",
+        "amount": 175000,
+        "notes": "Dibayarkan saat pendaftaran awal."
+      },
+      "etika_pembekalan": {
+        "name": "Biaya Etika/Pembekalan Mahasiswa Baru",
+        "amount": 500000,
+        "notes": "Biasanya dibayarkan setelah lulus seleksi."
+      }
+    },
+    "general_steps": [
+      "Kunjungi Website PMB resmi: https://pmb.unanda.ac.id/home",
+      "Pilih jalur pendaftaran.",
+      "Buat akun dan lengkapi formulir online.",
+      "Lakukan pembayaran biaya formulir.",
+      "Unggah berkas persyaratan.",
+      "Ikuti tahapan seleksi (jika ada).",
+      "Pantau pengumuman kelulusan.",
+      "Jika lulus, lakukan daftar ulang dan pembayaran biaya lainnya."
+    ]
+  }

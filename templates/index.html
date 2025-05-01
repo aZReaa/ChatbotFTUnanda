@@ -3,37 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unanda FT Chatbot</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" /> 
+    <title>Unanda FT Chatbot V2</title> <!-- Versi baru -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Pastikan path ini benar sesuai struktur folder Flask Anda -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="chat-container">
         <div class="chat-header">
             <h1>Unanda FT Chatbot</h1>
+            <p>Asisten Virtual Fakultas Teknik</p> <!-- Subjudul opsional -->
         </div>
         <div class="chat-box" id="response-container">
-            <!-- Pesan contoh untuk melihat tampilan -->
-            <div class="chat-bubble bot">
-                Halo! Ada yang bisa saya bantu seputar Fakultas Teknik Unanda?
+            <!-- Pesan Awal Bot (Timestamp ditambahkan via JS jika diperlukan) -->
+            <div class="message-wrapper bot-wrapper">
+                <div class="chat-bubble bot">
+                    Halo! Ada yang bisa saya bantu seputar Fakultas Teknik Unanda?
+                </div>
+                <!-- Timestamp akan ditambahkan di sini oleh JS -->
             </div>
-            <div class="chat-bubble user">
-                Info pendaftaran mahasiswa baru.
-            </div>
-            <!-- Respons dari bot akan muncul di sini -->
         </div>
-        <form id="chat-form" class="chat-form">
-            <input type="text" id="user-input" class="chat-input" placeholder="Ketik pesan Anda..." />
-            <button type="submit" class="send-button" aria-label="Kirim"> 
+        <!-- Form input area -->
+        <form id="chat-form" class="chat-input-area">
+            <input type="text" id="user-input" class="chat-input" placeholder="Ketik pesan Anda..." autocomplete="off" />
+            <button type="submit" class="send-button" aria-label="Kirim">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </form>
     </div>
 
-    <!-- Tidak perlu script Font Awesome terpisah jika sudah link di head -->
+    <!-- Pastikan path ini benar sesuai struktur folder Flask Anda -->
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

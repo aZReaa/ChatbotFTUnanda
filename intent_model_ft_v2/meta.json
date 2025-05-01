@@ -38,8 +38,12 @@
       "info_jalur_pmb",
       "info_biaya_pmb",
       "cara_daftar_pmb",
+      "ask_bot_identity",
       "tanya_pembelajaran_prodi",
-      "tanya_pembelajaran_lab"
+      "tanya_pembelajaran_lab",
+      "info_krs_sevima",
+      "cara_bayar_sevima_tokopedia",
+      "neutral"
     ],
     "ner":[
       "PERSON"

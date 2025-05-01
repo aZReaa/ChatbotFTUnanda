@@ -1,0 +1,44 @@
+**Tata Cara Pembayaran Uang Kuliah melalui Sevima Pay menggunakan Tokopedia:**
+
+1.  **Login ke SIAKAD Cloud Universitas:**
+    *   Akses halaman SIAKAD Cloud Universitas (alamat spesifik tanyakan ke admin kampus).
+    *   Masukkan **Akun Pengguna (NIM)** dan **Kata Sandi (Biasanya format TAHUNBULANTANGGAL lahir, cth: 19970505)**.
+    *   Klik **Masuk Aplikasi**.
+
+2.  **Lihat Tagihan:**
+    *   Cari menu **Profile** atau sejenisnya, lalu klik **Riwayat Keuangan**.
+    *   Lihat tagihan Anda di tab **Tagihan Anda**.
+
+3.  **Pilih Tagihan & Bayar:**
+    *   **Centang/tandai** tagihan yang ingin Anda bayar.
+    *   Klik tombol **Bayar Tagihan**.
+
+4.  **Dapatkan Kode Virtual Account (VA):**
+    *   Sistem akan menampilkan **Kode Virtual Account (VA)** dan **Total Pembayaran**.
+    *   **Catat Kode VA ini** dan perhatikan tanggal **Jatuh Tempo**.
+
+5.  **Bayar di Tokopedia:**
+    *   Buka aplikasi **Tokopedia** atau website **www.tokopedia.com**.
+    *   Pilih menu **Top-Up & Tagihan**.
+    *   Pilih **Biaya Pendidikan**.
+    *   Pada bagian **Pilih Institusi Pendidikan**, cari dan pilih nama Universitas Anda.
+    *   Masukkan **Nomor Pembayaran** dengan **Kode VA** yang Anda catat tadi.
+    *   Klik **Bayar** atau **Cek Tagihan**.
+
+6.  **Konfirmasi & Pilih Metode Pembayaran:**
+    *   Periksa detail tagihan yang muncul di Tokopedia. Pastikan nama dan jumlahnya sesuai.
+    *   Jika sesuai, klik **Lanjut**.
+    *   Pilih **Metode Pembayaran** yang Anda inginkan (misal: transfer bank via VA Tokopedia, OVO, GoPay, dll.).
+    *   Ikuti instruksi untuk menyelesaikan pembayaran di Tokopedia.
+
+7.  **Verifikasi di SIAKAD:**
+    *   Setelah pembayaran di Tokopedia berhasil, kembali ke **SIAKAD Cloud > Riwayat Keuangan**.
+    *   Status tagihan yang dibayar seharusnya sudah berubah menjadi **Lunas** (mungkin perlu beberapa saat). Anda bisa cek juga di tab **Histori Pembayaran**.
+
+8.  **Jika Ada Masalah:**
+    *   Untuk masalah pembayaran via SevimaPay, kunjungi: `https://sevimapay.sevima.com/bantuan/`
+    *   Atau email ke: `sevimapay@sevima.com`
+
+**Penting:**
+*   Pastikan membayar **sebelum tanggal jatuh tempo** yang tertera saat generate VA.
+*   Simpan bukti pembayaran dari Tokopedia.

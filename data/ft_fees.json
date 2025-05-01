@@ -1,0 +1,64 @@
+{
+    "praktikum": {
+      "Lab Software": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab TI."
+      },
+      "Lab Hardware": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab TI."
+      },
+      "Lab Mekanika Tanah": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Sipil/Tambang."
+      },
+      "Lab Perkerasan Jalan Raya & Aspal": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Sipil."
+      },
+      "Lab Hidrolika": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Sipil."
+      },
+      "Lab Struktur & Bahan": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Sipil."
+      },
+      "Lab Gambar Rekayasa": {
+        "amount": 200000,
+        "ujian_akhir_praktikum_amount": 50000,
+        "notes": "Biasanya via Aslab Sipil, konfirmasi ulang."
+      },
+      "Lab Geologi Fisik": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Tambang."
+      },
+      "Lab Perpetaan": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Tambang."
+      },
+      "Lab Mineralogi dan Petrologi": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Tambang."
+      },
+      "Lab Geologi Struktur": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Dibayarkan per praktikum melalui Asisten Lab Tambang."
+      },
+      "_default": {
+        "amount": 250000,
+        "ujian_akhir_praktikum_amount": 100000,
+        "notes": "Biaya dapat bervariasi per lab. Pembayaran biasanya melalui Asisten Lab. Mohon konfirmasi ke lab/prodi terkait."
+      }
+    }
+  }

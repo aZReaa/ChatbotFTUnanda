@@ -1,0 +1,73 @@
+{
+    "jadwal_kuliah": {
+      "TI": {
+        "2024-2025": {
+          "Metode Numerik": {
+            "kelas": "TI-2",
+            "semester": "VI",
+            "hari": "Senin",
+            "jam": "08:00 - 09:40",
+            "ruang": "B-01",
+            "dosen": "Apriyanto, S.Pd., M.Sc."
+          },
+          "Bahasa Inggris": {
+            "kelas": "TI-2",
+            "semester": "II",
+            "hari": "Senin",
+            "jam": "09:50 - 11:30",
+            "ruang": "B-02",
+            "dosen": "Musyrifa Mahfuddin, S.S., M.Hum. & Alfianti Tadjuddin, S.Pd., M.Pd."
+          },
+          "Pemodelan Berorientasi Objek": {
+            "kelas": "TI-1",
+            "semester": "IV",
+            "hari": "Selasa",
+            "jam": "08:00 - 09:40",
+            "ruang": "A-05",
+            "dosen": "Mukramin, S.Kom., M.Kom."
+          },
+          "Pemrograman Dasar": {
+            "kelas": "TI-1",
+            "semester": "II",
+            "hari": "Rabu",
+            "jam": "08:00 - 09:40",
+            "ruang": "B-01",
+            "dosen": "Solmin Paembonan, S.Kom., M.Cs."
+          },
+          "Jaringan Komputer": {
+            "kelas": "TI-1",
+            "semester": "IV",
+            "hari": "Kamis",
+            "jam": "10:00 - 11:30",
+            "ruang": "A-05",
+            "dosen": "Muhlis Muhallim, S.Kom., M.Cs."
+          },
+          "Desain Grafis": {
+            "kelas": "TI-Gab",
+            "semester": "VI",
+            "hari": "Jumat",
+            "jam": "13:00 - 14:40",
+            "ruang": "B-02",
+            "dosen": "Vaira Indah Wahyuni, S.Pd., M.Pd."
+          },
+          "Sistem Informasi": {
+            "kelas": "TI-1",
+            "semester": "VI & VIII",
+            "hari": "Rabu",
+            "jam": "13:00 - 14:40",
+            "ruang": "B-02",
+            "dosen": "Hisma Abduh, S.Kom., M.Cs."
+          },
+          "Keamanan Jaringan": {
+            "kelas": "TI-2",
+            "semester": "VI",
+            "hari": "Kamis",
+            "jam": "14:50 - 16:30",
+            "ruang": "A-05",
+            "dosen": "Dasril, S.Kom., M.Kom."
+          }
+        }
+      }
+    }
+  }
+  

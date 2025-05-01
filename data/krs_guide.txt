@@ -1,0 +1,39 @@
+Tata Cara Umum Pengisian Kartu Rencana Studi (KRS) di Sistem Sevima:
+
+1. Login ke Sistem Sevima:
+    Buka browser dan akses website Sevima kampus Anda (misal: siakad.kampus.ac.id atau tanyakan admin).
+    Masukkan Username (biasanya NIM) dan Password Anda. Jika belum punya/lupa, hubungi admin kampus.
+
+2. Masuk ke Halaman KRS:
+    Setelah login, cari menu Kartu Rencana Studi (KRS) atau sejenisnya di dashboard.
+    Klik menu tersebut.
+
+3. Pilih Periode:
+    * Pilih Semester dan Tahun Akademik yang akan Anda jalani (misal: Ganjil 2024/2025).
+
+4. Pilih Mata Kuliah:
+    * Akan muncul daftar mata kuliah yang ditawarkan untuk semester tersebut.
+    * Centang/tandai mata kuliah yang ingin Anda ambil.
+    * Perhatikan prasyarat: Beberapa mata kuliah mungkin mengharuskan Anda sudah lulus mata kuliah lain.
+    * Perhatikan SKS: Pastikan total SKS yang Anda ambil tidak melebihi batas maksimal yang diizinkan (biasanya berdasarkan IPK semester sebelumnya).
+    * Cek jadwal: Usahakan tidak memilih mata kuliah yang jadwalnya bentrok.
+
+5. Simulasi (Jika Ada):
+    * Beberapa sistem memungkinkan simulasi untuk melihat jadwal dan total SKS. Gunakan fitur ini jika tersedia.
+
+6. Cek Ulang:
+    * Periksa kembali semua mata kuliah yang sudah Anda pilih. Pastikan sudah benar.
+
+7. Simpan dan Kirim/Ajukan:
+    * Klik tombol Simpan atau Ajukan atau Kirim. Proses ini akan mengirimkan KRS Anda untuk diverifikasi.
+
+8. Verifikasi oleh Dosen PA:
+    * KRS Anda perlu disetujui oleh Dosen Pembimbing Akademik (PA). Pantau status KRS Anda di sistem.
+    * Jika ada yang perlu diperbaiki, Dosen PA biasanya akan memberi catatan atau menolak sementara. Segera perbaiki dan ajukan ulang.
+
+9. Cetak KRS (Setelah Disetujui):
+    * Setelah KRS disetujui, biasanya ada opsi untuk Cetak KRS. Cetak dan simpan sebagai bukti.
+
+Penting:
+* Selalu perhatikan batas waktu pengisian KRS yang ditetapkan oleh kalender akademik.
+* Jika ragu, konsultasikan dengan Dosen Pembimbing Akademik Anda.

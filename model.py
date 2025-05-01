@@ -1,4 +1,4 @@
-# model.py (Versi Lengkap dengan Perbaikan AttributeError)
+# --- START OF FILE model.py ---
 
 import spacy
 from spacy.training.example import Example
@@ -7,12 +7,57 @@ import random
 import warnings
 import os
 import traceback
+import json
+import argparse
+
+
+
+# --- Setup Argument Parser ---x
+parser = argparse.ArgumentParser(description="Train spaCy model for intent and NER.")
+parser.add_argument("--input-data", required=True, help="Path to the training data JSON file.")
+parser.add_argument("--output-dir", default="intent_model_ft_v2", help="Directory to save the trained model.")
+parser.add_argument("--n-iter", type=int, default=30, help="Number of training iterations.")
+parser.add_argument("--dropout", type=float, default=0.35, help="Dropout rate during training.")
+parser.add_argument("--base-model", default="id", help="Base spaCy model to start from (e.g., 'id' for blank, 'id_core_news_sm')")
+args = parser.parse_args()
+args = parser.parse_args()
 
 # --- PILIH MODEL DASAR ---
-nlp = spacy.blank("id")
-print("Menggunakan model spaCy: blank 'id'")
-# -------------------------
+print(f"Loading base spaCy model: '{args.base_model}'...")
+nlp = None # Inisialisasi nlp sebelum try block
+try:
+    if args.base_model == "id":
+        nlp = spacy.blank("id")
+        print("Using model spaCy: blank 'id'")
+    else:
+        nlp = spacy.load(args.base_model)
+        print(f"Using model spaCy: '{args.base_model}'")
+except OSError:
+    print(f"ERROR: Base model '{args.base_model}' not found. Try 'python -m spacy download {args.base_model}' or use 'id' for blank.")
+    print("Falling back to blank 'id' model.")
+    nlp = spacy.blank("id")
 
+
+print("\nMencoba mengaktifkan GPU...")
+gpu_activated = False
+try:
+    # Panggil melalui namespace spacy utama
+    spacy.require_gpu() # <<<--- UBAH PEMANGGILAN DI SINI
+    gpu_activated = True
+    print(">>> GPU Berhasil Diaktifkan! Pelatihan akan menggunakan GPU.")
+except Exception as e: # Tangkap error jika GPU tidak bisa diaktifkan
+    print(f"--- PERINGATAN: Gagal mengaktifkan GPU: {e}")
+    print("--- Pelatihan akan dilanjutkan menggunakan CPU.")
+    print("--- Pastikan Prasyarat GPU (Driver, CUDA, cuDNN, spacy[cuda-XXX]) sudah terpenuhi.")
+# <<<--- AKHIR BLOK AKTIVASI GPU --->>>
+# <<<--- AKHIR BLOK AKTIVASI GPU --->>>
+# Contoh pemrosesan teks
+text = "SpaCy is great for Natural Language Processing!"
+doc = nlp(text)
+
+# Menampilkan hasil pemrosesan
+for token in doc:
+    print(token.text, token.pos_, token.dep_)
 # --- TAMBAHKAN PIPE TEXTCAT DAN NER ---
 print("Memastikan pipe 'textcat' dan 'ner' ada...")
 if "textcat" not in nlp.pipe_names:
@@ -31,6 +76,7 @@ else:
 
 
 # --- DEFINISIKAN LABEL INTENT (TEXTCAT) ---
+# Tetap definisikan di sini untuk menambahkan ke pipe
 labels_intent = [
     "greeting_ft", "provide_name", "goodbye_ft", "thankyou_ft",
     "info_spp_ft", "cara_bayar_spp_ft",
@@ -38,22 +84,16 @@ labels_intent = [
     "fasilitas_umum_ft",
     "info_lab_sipil", "info_lab_informatika", "info_lab_pertambangan", # Info umum lab
     "info_prodi_sipil", "info_prodi_informatika", "info_prodi_pertambangan", # Info umum prodi
-    "kontak_ft",
-    "tanya_biaya_praktikum",
-    "info_pmb_umum", "info_jalur_pmb", "info_biaya_pmb", "cara_daftar_pmb",
-    # --- INTENT BARU UNTUK PEMBELAJARAN ---
-    "tanya_pembelajaran_prodi", # Tanya apa yang dipelajari di PRODI
-    "tanya_pembelajaran_lab"    # Tanya apa yang dipelajari di LAB
+    "kontak_ft", "tanya_biaya_praktikum",
+    "info_pmb_umum", "info_jalur_pmb", "info_biaya_pmb", "cara_daftar_pmb","ask_bot_identity",
+    "tanya_pembelajaran_prodi", "tanya_pembelajaran_lab",
+    "info_krs_sevima",
+    "cara_bayar_sevima_tokopedia",
+    "neutral" # Tambahkan label netral jika ada contoh yg tidak cocok
 ]
 
 # --- DEFINISIKAN LABEL ENTITAS (NER) ---
 labels_ner = ["PERSON"] # Hanya PERSON
-
-# --- Helper function untuk membuat cats dictionary ---
-def create_cats_combined(target_label, all_labels):
-    if target_label not in all_labels:
-        print(f"PERINGATAN: Target label '{target_label}' tidak ditemukan dalam daftar labels_intent. Pastikan tidak ada typo.")
-    return {label: (1.0 if label == target_label else 0.0) for label in all_labels}
 
 # --- Menambahkan label ke pipes ---
 print("Menambahkan label ke pipes...")
@@ -61,7 +101,7 @@ current_labels_textcat = set(textcat_pipe.labels)
 for label in labels_intent:
     if label not in current_labels_textcat:
         textcat_pipe.add_label(label)
-print(f"Label textcat: {list(textcat_pipe.labels)}") # Cetak sebagai list agar lebih rapi
+print(f"Label textcat: {list(textcat_pipe.labels)}")
 current_labels_ner = set(ner_pipe.labels)
 for label in labels_ner:
      if label not in current_labels_ner:
@@ -69,236 +109,65 @@ for label in labels_ner:
 print(f"Label NER: {list(ner_pipe.labels)}")
 
 
-# --- DATASET PELATIHAN GABUNGAN (INTENT & NER) ---
-# !! TAMBAHKAN LEBIH BANYAK CONTOH !!
-TRAIN_DATA = [
-    # === Tanya Biaya Praktikum ===
-    ("Berapa biaya praktikum di FT?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Uang praktikum lab berapa ya?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Ada biaya tambahan buat praktikum?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Praktikum pemrograman web bayar berapa?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Biaya praktikum lab software?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Info uang lab", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Ujian akhir praktikum bayar berapa?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Biaya seminar lab hardware?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Praktikum di teknik bayar lagi ga?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
-    ("Berapa bayar buat ikut praktikum?", {"cats": create_cats_combined("tanya_biaya_praktikum", labels_intent), "entities": []}),
+# --- MEMBACA DATASET PELATIHAN DARI FILE JSON ---
+TRAIN_DATA = []
+train_data_file = args.input_data # <-- Gunakan argumen input
+print(f"\nMembaca data latih dari file: {train_data_file}")
+try:
+    with open(train_data_file, 'r', encoding='utf-8') as f:
+        data_from_json = json.load(f)
+        # Ubah format kembali ke list of tuples: (text, {"cats": {...}, "entities": [...]})
+        for item in data_from_json:
+            if len(item) == 2 and isinstance(item[0], str) and isinstance(item[1], dict):
+                text = item[0]
+                annots = item[1]
+                # Pastikan struktur anotasi dasar ada
+                if "cats" not in annots: annots["cats"] = {}
+                if "entities" not in annots: annots["entities"] = []
 
-    # === Greeting ===
-    ("Hai", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Assalamualaikum", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Halo", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Selamat pagi", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Selamat Malam", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Hai admin FT", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Permisi", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Pagi", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Siang", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Sore", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Malam", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
-    ("Halo bot", {"cats": create_cats_combined("greeting_ft", labels_intent), "entities": []}),
+                # Validasi dan ubah format entitas jika perlu (JSON array -> Python tuple)
+                if isinstance(annots.get("entities"), list):
+                    valid_entities = []
+                    for ent in annots["entities"]:
+                        if isinstance(ent, list) and len(ent) == 3:
+                             valid_entities.append(tuple(ent))
+                        elif isinstance(ent, tuple) and len(ent) == 3:
+                             valid_entities.append(ent)
+                    annots["entities"] = valid_entities
 
-    # === Provide Name (Intent + NER) ===
-    ("Nama saya Budi", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(10, 14, "PERSON")]}),
-    ("Panggil saja saya Citra", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(18, 23, "PERSON")]}),
-    ("Saya Andi", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(5, 9, "PERSON")]}),
-    ("Kenalkan, nama saya Rahmat Hidayat", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(20, 34, "PERSON")]}),
-    ("Budi", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(0, 4, "PERSON")]}),
-    ("Citra", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(0, 5, "PERSON")]}),
-    ("Karin", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(0, 5, "PERSON")]}),
-    ("Dewi", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(0, 4, "PERSON")]}),
-    ("Nama saya adalah Karin", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(17, 22, "PERSON")]}),
-    ("Saya Budi Haryanto", {"cats": create_cats_combined("provide_name", labels_intent), "entities": [(5, 18, "PERSON")]}),
+                TRAIN_DATA.append((text, annots))
+            else:
+                print(f"Peringatan: Format data tidak valid dalam file JSON, item dilewati: {item}")
+    print(f"Berhasil membaca {len(TRAIN_DATA)} data latih.")
+except FileNotFoundError:
+    print(f"ERROR: File data latih '{train_data_file}' tidak ditemukan.")
+    exit(1) # Exit with error code
+except json.JSONDecodeError as e:
+    print(f"ERROR: Gagal membaca file JSON '{train_data_file}': {e}")
+    exit(1)
+except Exception as e:
+    print(f"ERROR: Terjadi kesalahan saat memproses data latih dari JSON: {e}")
+    traceback.print_exc()
+    exit(1)
 
-    # === Goodbye ===
-    ("Oke makasih, sampai jumpa", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Dadah", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Cukup sekian", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Sampai jumpa lagi", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Sudah cukup infonya", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Itu saja, terima kasih", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-    ("Oke, saya pamit", {"cats": create_cats_combined("goodbye_ft", labels_intent), "entities": []}),
-
-    # === Thank You ===
-    ("Terima kasih infonya", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Makasih banyak bantuannya", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Oke, thanks", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Oke, thanks ya", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Sangat membantu, terima kasih", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Makasih banyak!", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-    ("Mantap infonya, makasih", {"cats": create_cats_combined("thankyou_ft", labels_intent), "entities": []}),
-
-    # === Info SPP ===
-    ("Berapa biaya SPP teknik?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("UKT fakultas teknik berapa ya?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("info uang kuliah teknik", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("Biaya per semester di FT?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("Biaya kuliah di FT berapa?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("Mau tanya biaya pendidikan FT", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("SPP prodi informatika berapa?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("Berapa UKT teknik sipil?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-    ("Rincian biaya kuliah di teknik ada?", {"cats": create_cats_combined("info_spp_ft", labels_intent), "entities": []}),
-
-    # === Cara Bayar SPP ===
-    ("Bagaimana cara bayar UKT FT?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Bayar SPP teknik lewat apa?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Prosedur pembayaran uang kuliah?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Bayarnya kemana ya?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Minta tutorial bayar SPP dong", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Bisa bayar lewat bank apa saja?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Info rekening pembayaran FT", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-    ("Kapan batas waktu pembayaran?", {"cats": create_cats_combined("cara_bayar_spp_ft", labels_intent), "entities": []}),
-
-    # === Jadwal Kuliah (PDF) ===
-    ("Minta jadwal kuliah fakultas teknik", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Jadwal FT semester ini mana?", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Saya butuh jadwal pdf teknik", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Lihat jadwal kuliah dimana?", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Lihat jadwal kuliah FT dimana?", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Jadwal kuliah prodi informatika ada?", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Tolong kirim jadwal sipil", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Jadwal teknik pertambangan semester genap", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-    ("Roster kuliah FT", {"cats": create_cats_combined("jadwal_kuliah_ft", labels_intent), "entities": []}),
-
-    # === Fasilitas Umum FT ===
-    ("Fasilitas umum di fakultas teknik apa saja?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Apakah ada wifi di gedung FT?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Di FT ada kantin?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Gedung teknik fasilitasnya apa aja?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Gedung FT ada fasilitas apa aja?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Apa saja yang ada di gedung teknik?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Mushola FT dimana?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Perpustakaan fakultas teknik ada?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-    ("Tempat parkir FT luas?", {"cats": create_cats_combined("fasilitas_umum_ft", labels_intent), "entities": []}),
-
-    # === Info Lab Umum (Sipil) ===
-    ("Lab untuk prodi teknik sipil apa saja?", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Sebutkan laboratorium di teknik sipil", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Apa saja lab di sipil?", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Teknik sipil punya lab apa?", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Info lab basah sipil", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Lab komputer sipil ada?", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Mau tanya tentang lab struktur sipil", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Daftar lab prodi sipil", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-    ("Lab mektan dimana?", {"cats": create_cats_combined("info_lab_sipil", labels_intent), "entities": []}),
-
-    # === Info Lab Umum (Informatika) ===
-    ("Lab di teknik informatika ada apa aja?", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Saya mau tanya lab TI", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Lab informatika apa saja?", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Laboratorium untuk prodi informatika", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Sebutkan lab TI", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Info lab jaringan komputer", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Lab RPL teknik informatika", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-    ("Fasilitas laboratorium TI", {"cats": create_cats_combined("info_lab_informatika", labels_intent), "entities": []}),
-
-    # === Info Lab Umum (Pertambangan) ===
-    ("Laboratorium teknik pertambangan", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Info lab prodi tambang", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Fasilitas lab pertambangan?", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Teknik pertambangan punya lab apa?", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Lab geologi tambang", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Lab mekanika batuan dimana?", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Daftar laboratorium tambang", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-    ("Lab komputasi tambang ada?", {"cats": create_cats_combined("info_lab_pertambangan", labels_intent), "entities": []}),
-
-    # === Info Prodi Umum (Sipil) ===
-    ("Jelaskan tentang teknik sipil", {"cats": create_cats_combined("info_prodi_sipil", labels_intent), "entities": []}),
-    ("Info prodi sipil", {"cats": create_cats_combined("info_prodi_sipil", labels_intent), "entities": []}),
-    ("Prospek kerja teknik sipil?", {"cats": create_cats_combined("info_prodi_sipil", labels_intent), "entities": []}),
-    ("Mau tahu kurikulum sipil", {"cats": create_cats_combined("info_prodi_sipil", labels_intent), "entities": []}),
-    ("Deskripsi jurusan teknik sipil", {"cats": create_cats_combined("info_prodi_sipil", labels_intent), "entities": []}),
-
-    # === Info Prodi Umum (Informatika) ===
-    ("Info prodi informatika", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-    ("Teknik informatika itu gimana?", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-    ("Jelaskan tentang TI", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-    ("Prospek kerja TI?", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-    ("Kurikulum informatika seperti apa?", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-    ("Bedanya TI sama SI apa?", {"cats": create_cats_combined("info_prodi_informatika", labels_intent), "entities": []}),
-
-    # === Info Prodi Umum (Pertambangan) ===
-    ("Saya tertarik dengan teknik pertambangan", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-    ("Jelaskan tentang prodi tambang", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-    ("Jelaskan prodi tambang", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-    ("Info teknik pertambangan", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-    ("Prospek kerja lulusan tambang?", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-    ("Gambaran jurusan teknik pertambangan", {"cats": create_cats_combined("info_prodi_pertambangan", labels_intent), "entities": []}),
-
-    # === Kontak FT ===
-    ("Bagaimana menghubungi fakultas teknik?", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Nomor telepon TU FT berapa?", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Kontak fakultas teknik?", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Kontak admin FT", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Email fakultas teknik apa?", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Mau tanya ke TU FT", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Alamat fakultas teknik", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Nomor WA admin FT ada?", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-    ("Kontak akademik FT", {"cats": create_cats_combined("kontak_ft", labels_intent), "entities": []}),
-
-    # === Info PMB ===
-    ("Info pendaftaran mahasiswa baru", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Bagaimana cara daftar kuliah di FT?", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Website PMB Unanda apa?", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Penerimaan mahasiswa baru kapan dibuka?", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Saya mau daftar jadi mahasiswa teknik", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Info pendaftaran FT", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("PMB Fakultas Teknik", {"cats": create_cats_combined("info_pmb_umum", labels_intent), "entities": []}),
-    ("Jalur masuk FT apa saja?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Apakah ada jalur mandiri?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Info jalur RPL", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Bedanya jalur mandiri sama RPL apa?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Saya sudah kerja, bisa daftar lewat jalur apa?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Pendaftaran ada berapa jalur?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Jalur RPL itu apa?", {"cats": create_cats_combined("info_jalur_pmb", labels_intent), "entities": []}),
-    ("Berapa biaya pendaftaran mahasiswa baru?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Uang formulir berapa?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Bayar apa saja waktu daftar?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Biaya pembekalan mahasiswa baru berapa?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Ada biaya etika?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Total biaya awal pendaftaran?", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Rincian biaya PMB", {"cats": create_cats_combined("info_biaya_pmb", labels_intent), "entities": []}),
-    ("Bagaimana langkah-langkah pendaftarannya?", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Prosedur daftar online gimana?", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Tata cara pendaftaran mahasiswa baru", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Setelah isi formulir ngapain?", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Alur pendaftaran FT", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Minta tutorial daftar", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-    ("Gimana cara apply jadi mahasiswa?", {"cats": create_cats_combined("cara_daftar_pmb", labels_intent), "entities": []}),
-
-    # === DATA LATIH BARU: Tanya Pembelajaran Prodi ===
-    ("Apa saja yang dipelajari di teknik informatika?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Teknik sipil belajar apa aja?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Kalau masuk tambang, kuliahnya tentang apa?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Di prodi TI fokusnya apa?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Gambaran kuliah jurusan sipil?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Jelaskan materi kuliah informatika", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Mata kuliah inti teknik pertambangan?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Apa fokus utama prodi sipil?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-    ("Belajar apa di jurusan teknik informatika?", {"cats": create_cats_combined("tanya_pembelajaran_prodi", labels_intent), "entities": []}),
-
-    # === DATA LATIH BARU: Tanya Pembelajaran Lab ===
-    ("Di lab software belajar apa?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Apa yang dilakukan di lab mekanika tanah?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Lab hidrolika itu ngapain aja?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Apa itu lab hardware?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Fokus lab geologi fisik apa?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Pembelajaran di lab struktur dan bahan?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Kegiatan di lab perpetaan tambang?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Lab mineralogi dan petrologi belajar apa?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Jelaskan tentang lab gambar rekayasa", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Apa saja yang diajarkan di lab geologi struktur?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-    ("Apa fungsi lab mekanika tanah untuk sipil?", {"cats": create_cats_combined("tanya_pembelajaran_lab", labels_intent), "entities": []}),
-]
-
-
-# --- Fungsi Pelatihan (Dengan Perbaikan AttributeError) ---
+# --- Fungsi Pelatihan ---
+# (Fungsi train_spacy tetap sama seperti sebelumnya)
 def train_spacy(nlp_model, train_data, n_iter=30, dropout=0.35):
-    if "textcat" not in nlp_model.pipe_names or "ner" not in nlp_model.pipe_names:
-        print("Error: Pipe 'textcat' atau 'ner' tidak ditemukan.")
+    # ... (kode fungsi train_spacy tidak berubah) ...
+    if "textcat" not in nlp_model.pipe_names and "ner" not in nlp_model.pipe_names:
+         print("Error: Pipe 'textcat' dan 'ner' tidak ditemukan.")
+         return nlp_model # Kembalikan model asli jika kedua pipe tidak ada
+
+    pipes_to_train = []
+    if "textcat" in nlp_model.pipe_names:
+        pipes_to_train.append("textcat")
+    if "ner" in nlp_model.pipe_names:
+        pipes_to_train.append("ner")
+
+    if not pipes_to_train:
+        print("Error: Tidak ada pipe ('textcat' atau 'ner') untuk dilatih.")
         return nlp_model
 
-    pipes_to_train = ["textcat", "ner"]
     other_pipes = [pipe for pipe in nlp_model.pipe_names if pipe not in pipes_to_train]
 
     with warnings.catch_warnings():
@@ -307,7 +176,7 @@ def train_spacy(nlp_model, train_data, n_iter=30, dropout=0.35):
         with nlp_model.disable_pipes(*other_pipes):
             print("Memulai pelatihan untuk pipes:", pipes_to_train)
 
-            # Selalu gunakan begin_training() karena kita memulai dari model blank
+            # Selalu gunakan begin_training() karena kita memulai dari model blank atau base
             print("Menginisialisasi optimizer dengan begin_training().")
             optimizer = nlp_model.begin_training()
 
@@ -319,44 +188,77 @@ def train_spacy(nlp_model, train_data, n_iter=30, dropout=0.35):
 
                 for i, batch in enumerate(batches):
                     examples = []
+                    texts_in_batch = [] # Untuk debug error update
+                    annots_in_batch = [] # Untuk debug error update
                     for text, annotations in batch:
+                        texts_in_batch.append(text) # Simpan untuk debug
+                        annots_in_batch.append(annotations) # Simpan untuk debug
                         if not isinstance(annotations, dict):
                              print(f"Batch {i}, Peringatan: Format anotasi salah untuk '{text}'. Melewati.")
                              continue
+                        # Validasi lebih lanjut: pastikan ada 'cats' jika textcat dilatih, 'entities' jika ner dilatih
+                        if "textcat" in pipes_to_train and "cats" not in annotations:
+                            print(f"Batch {i}, Peringatan: Anotasi 'cats' hilang untuk '{text}' padahal textcat dilatih. Melewati.")
+                            continue
+                        if "ner" in pipes_to_train and "entities" not in annotations:
+                             print(f"Batch {i}, Peringatan: Anotasi 'entities' hilang untuk '{text}' padahal ner dilatih. Melewati.")
+                             continue
+
                         try:
-                            doc = nlp_model.make_doc(text)
+                            # Gunakan predicted=nlp_model(text) untuk Example.from_dict dengan base model
+                            # Gunakan doc=nlp_model.make_doc(text) untuk blank model
+                            doc = nlp_model.make_doc(text) # Asumsi kita sering mulai dari blank atau ingin re-tokenisasi
                             example = Example.from_dict(doc, annotations)
                             examples.append(example)
                         except Exception as e_ex:
                              print(f"Batch {i}, Error membuat Example untuk '{text}': {e_ex}")
                              print(f"  Anotasi bermasalah: {annotations}")
-                             # traceback.print_exc()
-                             continue
+                             traceback.print_exc() # Cetak traceback untuk detail error
+                             continue # Lanjut ke item berikutnya dalam batch
 
-                    if examples:
+                    if examples: # Hanya update jika ada examples valid dalam batch
                         try:
+                            # Pastikan ada examples sebelum update
                             nlp_model.update(examples, sgd=optimizer, drop=dropout, losses=losses)
                         except Exception as update_err:
                             print(f"Epoch {epoch+1}, Batch {i}, Error selama nlp.update: {update_err}")
-                            # traceback.print_exc()
-                            continue
+                            print("Teks dalam batch ini:")
+                            for t in texts_in_batch: print(f" - '{t}'")
+                            print("Anotasi dalam batch ini:")
+                            for a in annots_in_batch: print(f" - {a}")
+                            traceback.print_exc() # Cetak traceback untuk detail error
 
-                loss_textcat = losses.get('textcat', 0.0)
-                loss_ner = losses.get('ner', 0.0)
-                print(f"Epoch {epoch+1}/{n_iter} selesai. Loss Textcat: {loss_textcat:.3f}, Loss NER: {loss_ner:.3f}")
+
+                loss_textcat = losses.get('textcat', 'N/A')
+                loss_ner = losses.get('ner', 'N/A')
+                # Format loss hanya jika angka
+                loss_textcat_str = f"{loss_textcat:.3f}" if isinstance(loss_textcat, (int, float)) else loss_textcat
+                loss_ner_str = f"{loss_ner:.3f}" if isinstance(loss_ner, (int, float)) else loss_ner
+                print(f"Epoch {epoch+1}/{n_iter} selesai. Loss Textcat: {loss_textcat_str}, Loss NER: {loss_ner_str}")
 
     print("Pelatihan Selesai.")
     return nlp_model
 
-# --- Latih Model ---
-print("Memvalidasi data latih...")
+# --- Validasi dan Latih Model ---
+print("\nMemvalidasi data latih yang dibaca...")
 valid_train_data = []
-labels_in_pipe_textcat = set(textcat_pipe.labels)
-labels_in_pipe_ner = set(ner_pipe.labels)
-required_labels_found = {"textcat": False, "ner": False}
+# Dapatkan label aktual dari pipe setelah ditambahkan
+labels_in_pipe_textcat = set(nlp.get_pipe("textcat").labels) if "textcat" in nlp.pipe_names else set()
+labels_in_pipe_ner = set(nlp.get_pipe("ner").labels) if "ner" in nlp.pipe_names else set()
+has_textcat_data = False
+has_ner_data = False
+original_data_count = len(TRAIN_DATA)
 
-for i, (text, annots) in enumerate(TRAIN_DATA):
+for i, item in enumerate(TRAIN_DATA):
+    if not isinstance(item, (tuple, list)) or len(item) != 2:
+        print(f"Data #{i+1} Invalid: Bukan tuple/list dengan 2 elemen. Item: {item}")
+        continue
+    text, annots = item
     is_valid = True
+    if not isinstance(text, str):
+        print(f"Data #{i+1} Invalid: Teks bukan string. Item: {item}")
+        is_valid = False
+        continue
     if not isinstance(annots, dict):
         print(f"Data #{i+1} Invalid: Anotasi bukan dictionary. Teks: '{text}'")
         is_valid = False
@@ -367,84 +269,182 @@ for i, (text, annots) in enumerate(TRAIN_DATA):
             print(f"Data #{i+1} Invalid: 'cats' bukan dictionary. Teks: '{text}'")
             is_valid = False
         else:
-            required_labels_found["textcat"] = True
+            has_textcat_data = True
             unknown_cats = set(cats.keys()) - labels_in_pipe_textcat
             if unknown_cats:
-                 print(f"Data #{i+1} Warning: Label 'cats' tidak dikenal di pipe: {unknown_cats}. Teks: '{text}'")
+                 print(f"Data #{i+1} Warning: Label 'cats' tidak dikenal di pipe textcat: {unknown_cats}. Teks: '{text}'")
+            if not any(v > 0 for v in cats.values()):
+                 print(f"Data #{i+1} Warning: Anotasi 'cats' tidak memiliki label positif. Teks: '{text}'")
     entities = annots.get("entities")
     if entities is not None:
         if not isinstance(entities, list):
-             print(f"Data #{i+1} Invalid: 'entities' bukan list. Teks: '{text}'")
+             print(f"Data #{i+1} Invalid: 'entities' bukan list setelah diproses. Teks: '{text}'")
              is_valid = False
         else:
-            required_labels_found["ner"] = True
+            has_ner_data = True
             for j, ent in enumerate(entities):
-                if not (isinstance(ent, (tuple, list)) and len(ent) == 3 and isinstance(ent[0], int) and isinstance(ent[1], int) and isinstance(ent[2], str)):
+                if not (isinstance(ent, tuple) and len(ent) == 3 and
+                        isinstance(ent[0], int) and isinstance(ent[1], int) and ent[0] <= ent[1] and
+                        isinstance(ent[2], str)):
                     print(f"Data #{i+1}, Entity #{j+1} Invalid: Format entitas salah ({ent}). Teks: '{text}'")
                     is_valid = False
                     break
+                if not (0 <= ent[0] <= len(text) and 0 <= ent[1] <= len(text)):
+                    print(f"Data #{i+1}, Entity #{j+1} Invalid: Indeks entitas di luar batas teks ({ent[0]},{ent[1]} vs panjang {len(text)}). Teks: '{text}'")
+                    is_valid = False
+                    break
                 if ent[2] not in labels_in_pipe_ner:
-                     print(f"Data #{i+1}, Entity #{j+1} Warning: Label NER '{ent[2]}' tidak dikenal di pipe. Teks: '{text}'")
+                     print(f"Data #{i+1}, Entity #{j+1} Warning: Label NER '{ent[2]}' tidak dikenal di pipe NER. Teks: '{text}'")
 
     if is_valid:
         valid_train_data.append((text, annots))
 
 print("-" * 30)
-if not required_labels_found["textcat"]:
-     print("PERINGATAN: Tidak ada data latih valid yang ditemukan untuk Textcat ('cats'). Komponen Textcat tidak akan terlatih.")
-if not required_labels_found["ner"]:
-     print("PERINGATAN: Tidak ada data latih valid yang ditemukan untuk NER ('entities'). Komponen NER tidak akan terlatih dengan baik.")
+if "textcat" in nlp.pipe_names and not has_textcat_data:
+     print("PERINGATAN: Komponen Textcat ada, tetapi tidak ada data latih valid ditemukan dengan anotasi 'cats'. Textcat tidak akan terlatih.")
+elif "textcat" not in nlp.pipe_names and has_textcat_data:
+     print("PERINGATAN: Ditemukan data latih dengan anotasi 'cats', tetapi komponen Textcat tidak ada di model.")
+if "ner" in nlp.pipe_names and not has_ner_data:
+     print("PERINGATAN: Komponen NER ada, tetapi tidak ada data latih valid ditemukan dengan anotasi 'entities'. NER tidak akan terlatih dengan baik.")
+elif "ner" not in nlp.pipe_names and has_ner_data:
+     print("PERINGATAN: Ditemukan data latih dengan anotasi 'entities', tetapi komponen NER tidak ada di model.")
 
 if not valid_train_data:
      print("ERROR: Tidak ada data latih valid yang bisa digunakan. Pelatihan dibatalkan.")
-     exit()
+     exit(1)
+elif len(valid_train_data) < original_data_count:
+     print(f"PERINGATAN: {original_data_count - len(valid_train_data)} data latih dari file JSON tidak valid dan dilewati.")
 
-print(f"Jumlah data latih valid: {len(valid_train_data)} dari {len(TRAIN_DATA)}")
+print(f"Jumlah data latih valid: {len(valid_train_data)} dari {original_data_count} (dibaca dari JSON)")
 print("Memulai pelatihan...")
 
-nlp = train_spacy(nlp, valid_train_data, n_iter=30, dropout=0.35) # Latih dengan data valid
+# Latih dengan data valid menggunakan parameter dari args
+nlp = train_spacy(nlp, valid_train_data, n_iter=args.n_iter, dropout=args.dropout)
 
 # --- Simpan Model ---
-output_dir = "intent_model_ft_v2" # Pastikan nama direktori sama
+output_dir = args.output_dir # <-- Gunakan argumen output
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 try:
     nlp.to_disk(output_dir)
-    print(f"Model disimpan ke direktori: '{output_dir}'")
+    print(f"\nModel berhasil disimpan ke direktori: '{output_dir}'")
 except Exception as e:
     print(f"Gagal menyimpan model ke '{output_dir}': {e}")
+    traceback.print_exc()
 
 # --- Uji Model ---
 print("\nMenguji model yang baru disimpan:")
 try:
     nlp_test = spacy.load(output_dir)
+    # (Kode pengujian model tetap sama)
+    # ... (rest of the testing code) ...
     test_texts = [
-        "Halo", "Nama saya Karin", "Karin",
-        "Jadwal kuliah informatika ada?", "Cara bayar spp gimana?",
-        "Lab sipil ada apa?", "Makasih infonya", "Gedung FT dimana?",
-        "Citra", "Saya Budi Haryanto",
-        "Berapa biaya praktikum lab software?",
-        "Uang ujian akhir praktikum berapa?",
-        "Info PMB", "Jalur RPL itu apa?", "Berapa biaya formulir?", "Cara daftar gimana?",
-        "Apa yang dipelajari di teknik sipil?", # Test intent baru
-        "Belajar apa di lab hardware?", # Test intent baru
-        "Lab mekanika tanah ngapain?", # Test intent baru (ambigu)
-        "Fokus lab mekanika tanah tambang apa?", # Test intent baru (spesifik)
+        # Variasi dengan huruf kecil dan kapital
+        "halo, aku ingin tau biaya kuliah Sipil",
+        "Aku mau tau, berapa biaya kuliah Informatika?",
+        "Gimana cara daftar PMB?",
+        "berapa biaya kuliah tahun ini untuk Teknik Sipil?",
+        "Ada info tentang jadwal kuliah TI?",
+        "Mau tanya, apa biaya praktikum di lab Sipil?",
+        "saya mau bayar kuliah lewat Tokopedia, gimana caranya?",
+        "Berapa biaya semesteran TI 2023?",
+        "Mau tanya jadwal kuliah pertambangan, ada?",
+        "Tanya, apakah bisa bayar kuliah lewat Tokopedia?",
+        "halo, aku mau info tentang biaya SPP 2024",
+
+        # Variasi awalan kapital dan huruf kecil
+        "Apa aja yang dipelajari di lab Informatika?",
+        "Di mana bisa bayar kuliah? Saya butuh info",
+        "Gimana cara bayar kuliah lewat Tokped?",
+        "Saya ingin tahu, ada perubahan biaya kuliah atau tidak?",
+        "Mau tanya tentang biaya PMB tahun depan, ada info?",
+        "Bisa bantu, saya cari info tentang lab mekanika tanah?",
+        "Apakah biaya kuliah untuk Teknik Sipil berbeda setiap tahun?",
+        "Di mana saya bisa lihat biaya UKT untuk TI 2023?",
+        "Halo, saya ingin daftar ke prodi teknik pertambangan, gimana caranya?",
+        "Mau tanya, ada biaya tambahan untuk praktikum?",
+
+        # Variasi penggunaan kata tanya yang berbeda
+        "Dimana saya bisa cek info tentang biaya PMB?",
+        "Apa saja yang diajarkan di Teknik Sipil?",
+        "Bagaimana cara mengisi KRS di Sevima?",
+        "Kenapa biaya kuliah tahun ini naik ya?",
+        "Berapa biaya UKT untuk prodi Informatika?",
+        "Gimana cara isi KRS online?",
+        "Apakah ada diskon untuk biaya kuliah?",
+        "Ada biaya tambahan untuk PMB tahun ini?",
+        "Kapan saya bisa bayar kuliah?",
+        "Berapa biaya untuk semester pertama di Teknik Pertambangan?",
+
+        # Kalimat dengan variasi informal atau bahasa gaul
+        "Bro, bisa bantu tanya biaya kuliah TI?",
+        "Sis, ada info nggak tentang kuliah pertambangan?",
+        "Gimana ya cara bayar kuliah lewat Tokped?",
+        "Yuk, kasih tau biaya kuliah TI 2023?",
+        "Apa kabar? Bisa kasih info biaya PMB?",
+        "Nanya dong, ada biaya tambahan di lab sipil?",
+        "Bisa bantu? Saya lagi cari info biaya kuliah Sipil",
+        "Gimana cara daftar prodi Teknik Pertambangan?",
+        "Peraturan baru tentang biaya kuliah di tahun 2024?",
+
+        # Variasi pertanyaan dan pernyataan campuran
+        "Halo, mau tanya tentang biaya SPP Informatika",
+        "Saya mau daftar PMB tahun ini, gimana caranya?",
+        "Ada info jadwal kuliah Sipil?",
+        "Bagaimana cara mengakses KRS online di Sevima?",
+        "Mau bayar kuliah, gimana cara lewat Tokopedia?",
+        "Berapa biaya kuliah S1 Informatika?",
+        "Gimana cara bayar SPP lewat Sevima?",
+        "Apakah ada kuliah di lab mekanika tanah?",
+        "Di mana saya bisa lihat jadwal kuliah Informatika?",
+        "Mau daftar PMB, tapi nggak tahu gimana caranya?",
+
+        # Penambahan variasi bahasa Bugis Palopo
+        "halo, aku ingin tau berapa biaya kuliah Sipil",
+        "Halo, ada info nggak tentang biaya kuliah Informatika?",
+        "saya mau tau biaya kuliah TI 2023",
+        "Gimana cara bayar kuliah lewat Tokopedia?",
+        "Mau tanya biaya praktikum lab TI, ada?",
+        "Tanya, berapa biaya PMB tahun ini?",
+        "Di mana saya bisa bayar kuliah?",
+        "Ada info tentang lab mekanika tanah nggak?",
+        "Berapa biaya kuliah untuk Teknik Pertambangan?",
+        "Mau tanya, gimana cara isi KRS online?",
+
+        # Variasi kalimat negatif dan ketidakpastian
+        "Saya nggak yakin kalau saya bisa bayar kuliah tepat waktu.",
+        "Saya tidak tahu apakah saya bisa memilih mata kuliah ini atau tidak.",
+        "Tidak ada info lengkap tentang biaya praktikum, kan?",
+        "Saya belum jelas tentang cara bayar kuliah lewat Tokopedia.",
+        "Apakah biaya kuliah pertambangan itu tetap sama atau ada perubahan?"
     ]
+
     for text in test_texts:
         doc = nlp_test(text)
         print(f"\n>>> Teks: '{doc.text}'")
         cats = doc.cats
         if cats:
-             sorted_cats = sorted(cats.items(), key=lambda item: item[1], reverse=True)
-             print(f"  Intents (Top 3): {[ (cat, f'{score:.3f}') for cat, score in sorted_cats[:3] ]}")
+             # Pastikan textcat ada sebelum mencoba mengakses labelnya
+             if "textcat" in nlp_test.pipe_names:
+                 sorted_cats = sorted(cats.items(), key=lambda item: item[1], reverse=True)
+                 print(f"  Intents (Top 3): {[ (cat, f'{score:.3f}') for cat, score in sorted_cats[:3] ]}")
+             else:
+                 print("  Intents: Komponen Textcat tidak ada di model yang dimuat.")
         else:
              print("  Intents: Komponen Textcat tidak aktif atau tidak ada hasil.")
         ents = doc.ents
         if ents:
             print(f"  Entitas: {[(ent.text, ent.label_) for ent in ents]}")
         else:
-            print("  Entitas: Tidak ada")
+             # Pastikan NER ada sebelum menyatakan tidak ada entitas
+             if "ner" in nlp_test.pipe_names:
+                 print("  Entitas: Tidak ada")
+             else:
+                 print("  Entitas: Komponen NER tidak ada di model yang dimuat.")
 
 except Exception as e:
     print(f"Gagal memuat atau menguji model dari '{output_dir}': {e}")
+    traceback.print_exc()
+
+print("\n--- Selesai ---")
+# --- END OF FILE model.py ---
