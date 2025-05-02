@@ -1,3 +1,4 @@
+# --- START OF CLEANED FILE app.py ---
 import spacy
 from flask import Flask, request, jsonify, render_template, session
 from markupsafe import escape
@@ -7,1280 +8,861 @@ import secrets
 import json
 import traceback
 import re
-from spacy.matcher import PhraseMatcher # <-- Import yang benar
-import time # <-- Jangan lupa import time
+from spacy.matcher import PhraseMatcher
+import time
+
+# --- Import Logic Handler ---
+import intent_logic
 
 # --- KONFIGURASI APLIKASI ---
-# Pastikan direktori ini relatif terhadap lokasi script ini
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "intent_model_ft_v2")
 DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 CONFIDENCE_THRESHOLD = 0.5
+ENABLE_INTENT_DISAMBIGUATION = True
+DISAMBIGUATION_MARGIN = 0.15
+INTENT_DESCRIPTIONS = {
+    "info_spp_ft": "Informasi biaya SPP (kuliah per semester)",
+    "info_biaya_pmb": "Informasi biaya awal terkait pendaftaran mahasiswa baru (PMB)",
+    "jadwal_kuliah_ft": "Informasi jadwal kuliah",
+    "info_krs_sevima": "Panduan atau informasi pengisian KRS",
+    "cara_bayar_spp_ft": "Cara umum pembayaran SPP/UKT",
+    "cara_daftar_pmb": "Langkah-langkah pendaftaran mahasiswa baru",
+    "info_prodi_informatika": "Informasi umum tentang Prodi Teknik Informatika",
+    "info_prodi_sipil": "Informasi umum tentang Prodi Teknik Sipil",
+    "info_prodi_pertambangan": "Informasi umum tentang Prodi Teknik Pertambangan",
+    "tanya_biaya_praktikum": "Informasi biaya praktikum di laboratorium",
+    "tanya_pembelajaran_prodi": "Gambaran materi yang dipelajari di suatu prodi",
+    # Tambahkan deskripsi intent lain jika ada
+}
 
-# Placeholder Links (GANTI DENGAN LINK AKTUAL!)
-# Pastikan link ini valid dan bisa diakses
-# LINK_JADWAL_TI kini menjadi kurang penting jika data JSON tersedia, tapi simpan sbg fallback
-LINK_JADWAL_TI = "[Gdrive Jadwal TI]" # Contoh jika sudah diganti
-LINK_JADWAL_SIPIL = "[GANTI LINK JADWAL SIPIL]"
-LINK_JADWAL_TAMBANG = "[GANTI LINK JADWAL TAMBANG]"
-LINK_JADWAL_UMUM_FT = "[GANTI LINK UMUM FT JIKA ADA]"
-LINK_PRODI_SIPIL = "https://teknik.unanda.ac.id/teknik-sipil" # Contoh jika sudah diganti
-LINK_PRODI_INFORMATIKA = "https://teknik.unanda.ac.id/teknik-informatika" # Contoh jika sudah diganti
-LINK_PRODI_TAMBANG = "https://teknik.unanda.ac.id/teknik-pertambangan" # Contoh jika sudah diganti
-KONTAK_TU_INFO = "Anda bisa menghubungi Tata Usaha (TU) Fakultas Teknik di Gedung FT Lantai [2], Ruangan Akademik. Atau cek kontak resmi di website fakultas." # << GANTI INFO KONTAK LENGKAP & AKURAT
+PLACEHOLDER_CONFIG = {
+    "LINK_JADWAL_TI": "[Ganti dengan Link Gdrive Jadwal TI Anda]", # PERLU DIGANTI
+    "LINK_JADWAL_SIPIL": "[Ganti dengan Link Gdrive Jadwal Sipil Anda]", # PERLU DIGANTI
+    "LINK_JADWAL_TAMBANG": "[Ganti dengan Link Gdrive Jadwal Tambang Anda]", # PERLU DIGANTI
+    "LINK_JADWAL_UMUM_FT": "[Ganti dengan Link Gdrive Jadwal Umum FT Jika Ada]", # PERLU DIGANTI jika ada
+    "LINK_PRODI_SIPIL": "https://teknik.unanda.ac.id/teknik-sipil", # Pastikan link ini benar
+    "LINK_PRODI_INFORMATIKA": "https://teknik.unanda.ac.id/teknik-informatika", # Pastikan link ini benar
+    "LINK_PRODI_TAMBANG": "https://teknik.unanda.ac.id/teknik-pertambangan", # Pastikan link ini benar
+    "KONTAK_TU_INFO": "Anda bisa menghubungi Tata Usaha (TU) Fakultas Teknik di Gedung FT Lantai [2], Ruangan Akademik. Atau cek kontak resmi di website fakultas.", # PERLU DICEK/DIGANTI jika ada detail spesifik
+    "CONFIDENCE_THRESHOLD": CONFIDENCE_THRESHOLD,
+}
 
-# --- Inisialisasi Aplikasi Flask ---
+DOMAIN_KEYWORDS = set([
+    "fakultas", "teknik", "unanda", "andi djemma", "informatika", "if", "ti",
+    "sipil", "ts", "tambang", "pertambangan", "prodi", "jurusan",
+    "lab", "laboratorium", "praktikum", "jadwal", "kuliah", "kelas", "dosen",
+    "matkul", "mata kuliah", "spp", "ukt", "biaya", "harga", "tarif",
+    "krs", "sevima", "siakad", "pmb", "daftar", "pendaftaran", "mahasiswa", "maba",
+    "kampus", "akademik", "semester", "ujian", "skripsi", "gedung", "kontak",
+    "tu", "tata usaha", "bayar", "pembayaran", "alur", "syarat", "prosedur",
+    "fasilitas", "website", "link", "kurikulum", "silabus", "kaprodi", "dekan",
+])
+OOS_KEYWORDS = set([
+    "cuaca", "resep", "masak", "film", "bioskop", "politik", "bola", "sepakbola",
+    "musik", "lagu", "liburan", "jalan-jalan", "traveling", "saham", "investasi",
+    "gempa", "berita", "koran", "covid", "corona", "rekomendasi", "resto", "cafe",
+    "tempat makan", "peta", "lokasi", "arah", "jalan ke", "presiden", "gubernur",
+    "pemilu", "artis", "gosip", "selebriti", "main", "game", "nonton", "anime",
+    "ramalan", "horoskop", "mimpi", "agama", "cerpen", "puisi", "novel", "olahraga"
+])
+MIN_LEN_FOR_NO_DOMAIN_OOS = 4 # Minimal panjang input tanpa keyword domain untuk dianggap OOS potensial
+
 app = Flask(__name__)
-# SANGAT PENTING: Ganti dengan kunci rahasia yang kuat dan simpan di environment variable untuk production!
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'ganti-ini-dengan-kunci-rahasia-acak-yang-aman-' + secrets.token_hex(16))
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'ganti-ini-dengan-kunci-rahasia-acak-yang-aman-' + secrets.token_hex(16)) # PENTING: Ganti secret key ini di produksi
 
 # --- Helper Functions for Loading Data ---
 def load_json_data(filename):
-    """Memuat data dari file JSON di folder data."""
+    """Memuat data dari file JSON di DATA_DIR."""
     filepath = os.path.join(DATA_DIR, filename)
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            print(f"INFO: Data '{filename}' berhasil dimuat.")
-            return data
+        print(f"INFO: Data '{filename}' berhasil dimuat.")
+        return data
     except FileNotFoundError:
         print(f"ERROR: File data '{filepath}' tidak ditemukan.")
-        return {} # Kembalikan dictionary kosong agar tidak crash
+        return {}
     except json.JSONDecodeError as e:
-        print(f"ERROR: File data '{filepath}' bukan JSON yang valid. Kesalahan: {e}")
+        print(f"ERROR: File data '{filepath}' bukan JSON valid. Kesalahan: {e}")
         return {}
     except Exception as e:
         print(f"ERROR: Terjadi kesalahan lain saat memuat '{filepath}': {e}")
-        traceback.print_exc() # Cetak traceback untuk debug
+        traceback.print_exc()
         return {}
 
 def load_text_data(filename):
-    """Memuat data dari file teks di folder data."""
+    """Memuat data dari file teks di DATA_DIR."""
     filepath = os.path.join(DATA_DIR, filename)
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            content = f.read()
-            print(f"INFO: Teks '{filename}' berhasil dimuat.")
-            return content
+            content_data = f.read()
+        print(f"INFO: Teks '{filename}' berhasil dimuat.")
+        return content_data
     except FileNotFoundError:
+        error_msg = f"Konten panduan '{os.path.basename(filepath)}' tidak ditemukan."
         print(f"ERROR: File teks '{filepath}' tidak ditemukan.")
-        return f"Konten panduan '{os.path.basename(filepath)}' tidak ditemukan." # Pesan lebih spesifik
+        return error_msg
     except Exception as e:
+        error_msg = f"Terjadi kesalahan saat memuat panduan '{os.path.basename(filepath)}'."
         print(f"ERROR: Terjadi kesalahan saat memuat '{filepath}': {e}")
-        traceback.print_exc() # Cetak traceback untuk debug
-        return f"Terjadi kesalahan saat memuat panduan '{os.path.basename(filepath)}'."
+        traceback.print_exc()
+        return error_msg
 
-# --- Muat Semua Data Eksternal ---
+
+# --- Muat Semua Data Eksternal & Buat Config ---
 print("\n--- Memuat Data Eksternal ---")
-# Pastikan nama file ini sesuai dengan yang Anda buat di folder 'data'
-FT_FEES = load_json_data('ft_fees.json')
-PMB_INFO = load_json_data('pmb_info.json')
-LEARNING_CONTENT = load_json_data('learning_content.json')
-SPP_DATA = load_json_data('spp_data.json')
-TERMS_DATA = load_json_data('terms.json')
-JADWAL_TI_DATA = load_json_data('jadwal_ti.json') # <<<--- TAMBAHKAN PEMUATAN DATA JADWAL TI
-KRS_SEVIMA_GUIDE = load_text_data('krs_guide.txt')
-PAYMENT_SEVIMA_TOKOPEDIA_GUIDE = load_text_data('payment_guide.txt')
+APP_CONFIG = {}
+APP_CONFIG.update(PLACEHOLDER_CONFIG)
+APP_CONFIG['FT_FEES'] = load_json_data('ft_fees.json')
+APP_CONFIG['PMB_INFO'] = load_json_data('pmb_info.json')
+APP_CONFIG['LEARNING_CONTENT'] = load_json_data('learning_content.json')
+APP_CONFIG['SPP_DATA'] = load_json_data('spp_data.json')
+APP_CONFIG['TERMS_DATA'] = load_json_data('terms.json')
+APP_CONFIG['JADWAL_TI_DATA'] = load_json_data('jadwal_ti.json')
+APP_CONFIG['JADWAL_SIPIL_DATA'] = load_json_data('jadwal_sipil.json') # <<<--- ADDED
+APP_CONFIG['JADWAL_TAMBANG_DATA'] = load_json_data('jadwal_tambang.json') # <<<--- ADDED
+APP_CONFIG['KRS_SEVIMA_GUIDE'] = load_text_data('krs_guide.txt')
+APP_CONFIG['PAYMENT_SEVIMA_TOKOPEDIA_GUIDE'] = load_text_data('payment_guide.txt')
 
-
-# Ekstrak terms setelah data dimuat
+# Safely get TERMS data after loading for Matcher
+TERMS_DATA = APP_CONFIG.get('TERMS_DATA', {})
 PRODI_TERMS = TERMS_DATA.get('prodi', {})
 LAB_TERMS = TERMS_DATA.get('lab', {})
 print("--- Selesai Memuat Data Eksternal ---\n")
 
-# --- Helper function format Rupiah ---
-def format_idr(amount):
-    """Memformat angka menjadi string Rupiah."""
-    if amount is None or amount == "N/A": return "Informasi belum tersedia"
-    try:
-        # Pastikan amount adalah angka sebelum format
-        numeric_amount = float(amount)
-        return f"Rp {numeric_amount:,.0f}".replace(',', '.')
-    except (ValueError, TypeError):
-        # Jika konversi gagal, kembalikan apa adanya (mungkin sudah string)
-        print(f"WARNING: Gagal memformat '{amount}' sebagai Rupiah.")
-        return str(amount)
-
 # --- Memuat Model spaCy & Inisialisasi Matcher ---
-# (Kode ini tidak berubah)
-nlp = None # Inisialisasi nlp
-matcher = None # Inisialisasi matcher
-entity_details = {}
+nlp = None
+matcher = None
+entity_details = {} # Initialize here, before the try block
 
 try:
+    print("--- Memuat Model NLP & Matcher ---")
     if not os.path.exists(MODEL_DIR):
-         raise OSError(f"Direktori model '{MODEL_DIR}' tidak ditemukan.")
+        raise OSError(f"Direktori model '{MODEL_DIR}' tidak ditemukan.")
     nlp = spacy.load(MODEL_DIR)
-    print(f"INFO: Model spaCy '{MODEL_DIR}' berhasil dimuat.")
-    matcher = PhraseMatcher(nlp.vocab, attr='LOWER') # Inisialisasi di sini
+    print(f"INFO: Model spaCy '{os.path.basename(MODEL_DIR)}' berhasil dimuat.")
 
-    # Tambahkan Pola PRODI
-    if PRODI_TERMS:
-        added_prodi_count = 0
+    # Initialize PhraseMatcher with case-insensitive matching
+    matcher = PhraseMatcher(nlp.vocab, attr='LOWER')
+    added_prodi_count = 0
+    if PRODI_TERMS and isinstance(PRODI_TERMS, dict):
         for canonical, variations in PRODI_TERMS.items():
-            if not isinstance(variations, list):
-                print(f"WARNING: Variasi untuk PRODI '{canonical}' bukan list, dilewati.")
-                continue
-            patterns = [nlp.make_doc(text) for text in variations if isinstance(text, str)]
+            if not isinstance(variations, list): continue
+            # Create patterns only for valid strings and non-empty variations
+            patterns = [nlp.make_doc(text) for text in variations if isinstance(text, str) and text.strip()]
             if patterns:
-                match_id = f"PRODI_{canonical.replace(' ', '_').replace('&', 'and').upper()}" # ID unik & aman
+                match_id = f"PRODI_{canonical.replace(' ', '_').replace('&', 'and').upper()}"
+                # Add patterns to the matcher
                 matcher.add(match_id, patterns)
                 entity_details[match_id] = {"label": "PRODI", "canonical": canonical}
-                added_prodi_count += 1
-        print(f"INFO: Menambahkan {added_prodi_count} pola PRODI ke PhraseMatcher.")
+                added_prodi_count += len(patterns) # Count individual patterns added
+        print(f"INFO: Menambahkan {added_prodi_count} pola PRODI dari {len(PRODI_TERMS)} kanonikal ke PhraseMatcher.")
     else:
-        print("WARNING: PRODI_TERMS kosong atau gagal dimuat. Deteksi prodi rules tidak aktif.")
+        print("WARNING: PRODI_TERMS kosong atau tidak valid. Deteksi prodi rules tidak aktif.")
 
-    # Tambahkan Pola LAB
-    if LAB_TERMS:
-        added_lab_count = 0
+    added_lab_count = 0
+    if LAB_TERMS and isinstance(LAB_TERMS, dict):
         for canonical, variations in LAB_TERMS.items():
-            if not isinstance(variations, list):
-                 print(f"WARNING: Variasi untuk LAB '{canonical}' bukan list, dilewati.")
-                 continue
-            patterns = [nlp.make_doc(text) for text in variations if isinstance(text, str)]
+            if not isinstance(variations, list): continue
+            patterns = [nlp.make_doc(text) for text in variations if isinstance(text, str) and text.strip()]
             if patterns:
-                # ID lebih aman, handle karakter non-alphanumeric
-                safe_canonical = re.sub(r'\W+', '_', canonical)
+                safe_canonical = re.sub(r'\W+', '_', canonical) # Make key safer
                 match_id = f"LAB_{safe_canonical.upper()}"
                 matcher.add(match_id, patterns)
                 entity_details[match_id] = {"label": "LAB", "canonical": canonical}
-                added_lab_count += 1
-        print(f"INFO: Menambahkan {added_lab_count} pola LAB ke PhraseMatcher.")
-
+                added_lab_count += len(patterns) # Count individual patterns added
+        print(f"INFO: Menambahkan {added_lab_count} pola LAB dari {len(LAB_TERMS)} kanonikal ke PhraseMatcher.")
     else:
-         print("WARNING: LAB_TERMS kosong atau gagal dimuat. Deteksi lab rules tidak aktif.")
+        print("WARNING: LAB_TERMS kosong atau tidak valid. Deteksi lab rules tidak aktif.")
 
-    if matcher:
-         print(f"INFO: PhraseMatcher diinisialisasi dengan total {len(matcher)} pola.")
+    if matcher and (added_prodi_count > 0 or added_lab_count > 0):
+         print(f"INFO: PhraseMatcher diinisialisasi dengan total {len(matcher)} pola. Detail entitas: {len(entity_details)}")
+    elif matcher:
+         print(f"WARNING: PhraseMatcher diinisialisasi tetapi tidak ada pola yang ditambahkan dari TERMS_DATA.")
     else:
          print("WARNING: PhraseMatcher tidak berhasil diinisialisasi.")
 
-
 except OSError as e:
     print(f"FATAL ERROR: Tidak dapat memuat model spaCy dari '{MODEL_DIR}'. {e}")
-    print("Pastikan direktori model ada dan berisi model spaCy yang valid.")
-    print("Aplikasi tidak bisa berjalan tanpa model.")
-    exit(1) # Keluar jika model gagal dimuat
+    # Disable NLU functionality
+    nlp = None
+    matcher = None
+    entity_details = {}
 except Exception as e:
-    print(f"FATAL ERROR lain saat memuat model spaCy atau inisialisasi Matcher: {e}")
+    print(f"FATAL ERROR lain saat memuat model/matcher atau menginisialisasi matcher: {e}")
     traceback.print_exc()
-    exit(1) # Keluar jika ada error kritis lain
+    # Disable NLU functionality
+    nlp = None
+    matcher = None
+    entity_details = {}
+print("--- Selesai Memuat Model NLP & Matcher ---\n")
+
 
 # --- Helper Functions Lanjutan ---
-# (Fungsi extract_model_person_name, process_nlu, _get_spp_response tidak berubah)
 def extract_model_person_name(doc):
-    """Mengekstrak entitas PERSON pertama dari Doc spaCy."""
-    if not doc or not doc.ents: return None
+    """Ekstrak nama orang pertama yang terdeteksi oleh model NER spaCy."""
+    if not doc or not doc.ents:
+        return None
     for ent in doc.ents:
         if ent.label_ == "PERSON":
-            # Filter nama yang terlalu umum atau pendek
             name_text = ent.text.strip()
-            if len(name_text) > 2 and name_text.lower() not in ["bapak", "ibu", "mas", "mbak", "kak", "pak", "bu"]:
-                 return name_text
+            # Filter basic titles and pronouns, and names that are too short or long
+            if 1 < len(name_text) <= 30 and len(name_text.split()) <= 5 and \
+               name_text.lower() not in [
+                "bapak", "ibu", "mas", "mbak", "kak", "pak", "bu",
+                "nama", "panggilan", "saya", "aku", "ku", "admin", "bot", "chatbot"]:
+                 # Further check to avoid capturing sentences like "nama saya Budi" as "saya Budi"
+                 # by checking if common introductory phrases precede the extracted name.
+                 # This is a heuristic and might not be perfect.
+                 # Convert doc text slice to lower for comparison
+                 doc_text_slice = doc.text[max(0, ent.start_char - 10):ent.end_char + 10].lower()
+                 if not any(phrase in doc_text_slice for phrase in ["nama saya", "nama aku", "nama ku", "panggil saya", "panggil aku", "panggil ku"]):
+                     return name_text
     return None
 
 def process_nlu(text):
-    """Memproses teks input menggunakan spaCy (Intent & NER) dan PhraseMatcher (PRODI/LAB)."""
-    # Normalisasi input sebelum diproses
+    """Proses teks input menggunakan model spaCy NLU dan PhraseMatcher."""
     normalized_text = text.lower().strip()
 
-    if not nlp or not matcher: # Cek jika nlp atau matcher gagal load di awal
-        print("ERROR: Model NLP atau Matcher tidak tersedia untuk NLU.")
-        # Kembalikan struktur default agar tidak error di pemanggilan
-        return {"doc": None, "intent": None, "score": 0.0, "entities": {"PERSON": None, "PRODI": [], "LAB": []}}
+    # Check if NLU components are ready
+    if not nlp:
+        print("WARNING: NLP model not ready. Returning empty NLU result.")
+        # Ensure the returned dictionary structure is consistent
+        return {"doc": None, "intent": None, "score": 0.0, "entities": {"PERSON": None, "PRODI": [], "LAB": []}, "all_intents": {}}
 
     try:
-        doc = nlp(normalized_text) # Proses teks yang sudah dinormalisasi
+        doc = nlp(normalized_text)
         intents = doc.cats
         top_intent = max(intents, key=intents.get) if intents else None
         top_score = intents.get(top_intent, 0.0) if top_intent else 0.0
 
+        # Extract entities from model NER
         ner_person = extract_model_person_name(doc)
 
-        matches = matcher(doc)
-        detected_prodi_list = []
-        detected_lab_list = []
-        found_prodi_can = set()
-        found_lab_can = set()
+        # Extract entities using PhraseMatcher (rules) if matcher is initialized
+        detected_prodi_list, detected_lab_list = [], []
+        found_prodi_can, found_lab_can = set(), set() # Use sets to avoid duplicates
+        if matcher and entity_details: # Only run matcher if it's initialized and has patterns loaded
+            matches = matcher(doc)
+            # Sort matches by start index to handle overlapping or nested matches more predictably
+            sorted_matches = sorted(matches, key=lambda m: m[1])
 
-        # Urutkan matches berdasarkan posisi awal untuk prioritas jika tumpang tindih
-        sorted_matches = sorted(matches, key=lambda m: m[1])
+            for match_id_hash, start, end in sorted_matches:
+                string_id = nlp.vocab.strings[match_id_hash]
+                details = entity_details.get(string_id) # Use .get() for safety
+                if details:
+                    label, canonical = details["label"], details["canonical"]
+                    # Only add if the canonical form hasn't been added yet
+                    if label == "PRODI" and canonical not in found_prodi_can:
+                        # Validate that the span matches the original text segment after lowercasing
+                        span_text = doc.text[start:end] # text is already lowercased
+                        original_span_text = text[start:end].lower() # Get original text part lowercased
+                        if span_text == original_span_text: # Basic check
+                            detected_prodi_list.append(canonical)
+                            found_prodi_can.add(canonical)
+                        else:
+                            print(f"DEBUG: Matcher span mismatch for PRODI '{span_text}' (original part: '{original_span_text}') at [{start}:{end}]. Skipping.")
 
-        for match_id_hash, start, end in sorted_matches:
-            string_id = nlp.vocab.strings[match_id_hash] # Dapatkan ID string dari hash
-            if string_id in entity_details:
-                details = entity_details[string_id]
-                label = details["label"]
-                canonical = details["canonical"]
-                span_text = doc[start:end].text # Teks yang cocok
+                    elif label == "LAB" and canonical not in found_lab_can:
+                        # Validate that the span matches the original text segment after lowercasing
+                        span_text = doc.text[start:end]
+                        original_span_text = text[start:end].lower()
+                        if span_text == original_span_text: # Basic check
+                            detected_lab_list.append(canonical)
+                            found_lab_can.add(canonical)
+                        else:
+                             print(f"DEBUG: Matcher span mismatch for LAB '{span_text}' (original part: '{original_span_text}') at [{start}:{end}]. Skipping.")
 
-                # Hindari duplikasi canonical form
-                if label == "PRODI" and canonical not in found_prodi_can:
-                     # Optional: Cek jika span overlap dengan entitas lain jika perlu
-                     detected_prodi_list.append(canonical)
-                     found_prodi_can.add(canonical)
-                     # print(f"DEBUG Matcher: Found PRODI '{canonical}' from text '{span_text}'")
-                elif label == "LAB" and canonical not in found_lab_can:
-                     detected_lab_list.append(canonical)
-                     found_lab_can.add(canonical)
-                     # print(f"DEBUG Matcher: Found LAB '{canonical}' from text '{span_text}'")
+                # else: WARNING already printed during matcher init if entity_details is incomplete
+
+        # Ensure entities dictionary is fully populated even if no entities found
+        entities_result = {"PERSON": ner_person, "PRODI": detected_prodi_list, "LAB": detected_lab_list}
+
 
         return {
-            "doc": doc,
+            "doc": doc, # Keep doc for potential downstream use
             "intent": top_intent,
             "score": top_score,
-            "entities": {
-                "PERSON": ner_person,
-                "PRODI": detected_prodi_list,
-                "LAB": detected_lab_list
-            }
+            "entities": entities_result,
+            "all_intents": intents # Return all scores for disambiguation
         }
     except Exception as e:
-         print(f"ERROR saat NLU processing untuk teks: '{text}'. Kesalahan: {e}")
-         traceback.print_exc()
-         return {"doc": None, "intent": None, "score": 0.0, "entities": {"PERSON": None, "PRODI": [], "LAB": []}}
-
-
-def _get_spp_response(user_input_text, detected_prodi_canonical, user_name):
-    """Membuat respons spesifik untuk pertanyaan SPP/UKT."""
-    text = user_input_text.lower()
-    response = ""
-    periode_terdeteksi = None
-    # Perbaiki keyword agar lebih akurat
-    keywords_lama = ["angkatan 2018", "angkatan 2019", "angkatan 2020", "angkatan 2021", "angkatan 2022", "spp lama", "spp dulu"]
-    keywords_baru = ["angkatan 2023", "angkatan 2024", "spp terbaru", "spp sekarang", "spp saat ini", "biaya berlaku"]
-
-    # Cek periode dengan lebih hati-hati
-    if any(k in text for k in keywords_lama):
-        periode_terdeteksi = "2018-2022"
-    # Cek baru *setelah* cek lama untuk prioritas jika ada keduanya (meski aneh)
-    elif any(k in text for k in keywords_baru):
-        periode_terdeteksi = "2023-2024"
-
-    prodi_terdeteksi = detected_prodi_canonical # Gunakan hasil NLU
-    sapaan = f"Baik {escape(user_name)}" if user_name else "Baik" # Escape nama di sini
-
-    if not SPP_DATA:
-        return f"Maaf {escape(user_name) if user_name else ''}, data SPP tidak dapat dimuat saat ini. Mohon coba lagi nanti atau hubungi TU." # Escape nama
-
-    # Jika prodi terdeteksi dan ada datanya
-    if prodi_terdeteksi and prodi_terdeteksi in SPP_DATA:
-        spp_prodi = SPP_DATA[prodi_terdeteksi]
-        # Default ke periode terbaru jika tidak terdeteksi spesifik
-        target_periode = periode_terdeteksi if periode_terdeteksi else "2023-2024"
-        amount = spp_prodi.get(target_periode)
-
-        if amount is not None:
-            response = f"{sapaan}, biaya SPP/UKT untuk prodi **{prodi_terdeteksi}** periode **{target_periode}** adalah **{format_idr(amount)}** per semester."
-            # Tambahkan konteks jika periode default digunakan
-            if not periode_terdeteksi and target_periode == "2023-2024":
-                response += " (Ini adalah biaya SPP yang berlaku saat ini)."
-            # Tambahkan info jika periode lama diminta tapi ada yang baru
-            elif periode_terdeteksi == "2018-2022" and "2023-2024" in spp_prodi:
-                 amount_baru = spp_prodi.get("2023-2024")
-                 if amount_baru:
-                     response += f"\nSebagai info, biaya SPP terbaru (periode 2023-2024) untuk prodi ini adalah {format_idr(amount_baru)} per semester."
-
-        else: # Data periode spesifik tidak ada
-            response = f"Maaf {escape(user_name) if user_name else ''}, saya tidak memiliki data SPP untuk prodi **{prodi_terdeteksi}** pada periode **{target_periode}**. "
-            # Coba berikan info periode terbaru jika tersedia
-            spp_terbaru = spp_prodi.get("2023-2024")
-            if spp_terbaru is not None:
-                response += f"Biaya SPP yang berlaku saat ini (periode 2023-2024) untuk **{prodi_terdeteksi}** adalah **{format_idr(spp_terbaru)}** per semester."
-            else:
-                response += f"Informasi SPP terbaru untuk **{prodi_terdeteksi}** juga belum tersedia di data saya."
-    # Jika prodi tidak terdeteksi atau datanya tidak ada
-    else:
-        # Berikan ringkasan umum jika data SPP ada
-        response = f"{sapaan}, "
-        if prodi_terdeteksi and prodi_terdeteksi not in SPP_DATA:
-             response += f"mohon maaf, data SPP spesifik untuk prodi '{prodi_terdeteksi}' belum tersedia. "
-
-        response += "Berikut adalah ringkasan biaya SPP (UKT) per semester Fakultas Teknik yang berlaku saat ini (periode 2023-2024):\n"
-        found_any = False
-        for prodi, data in SPP_DATA.items():
-            spp_terbaru = data.get("2023-2024")
-            if spp_terbaru is not None:
-                # Gunakan list agar format lebih rapi
-                response += f"\n- **{prodi}**: {format_idr(spp_terbaru)}"
-                found_any = True
-
-        if not found_any:
-            response = f"Maaf {escape(user_name) if user_name else ''}, saya belum memiliki informasi detail biaya SPP saat ini. Silakan hubungi bagian akademik/keuangan."
-        elif not prodi_terdeteksi: # Tambahkan ajakan jika tidak ada prodi terdeteksi
-             response += f"\n\nSebutkan nama prodi jika Anda ingin info yang lebih spesifik."
-
-    return response.strip()
-
-# <<<--- FUNGSI BARU UNTUK MENCARI DAN MEMFORMAT JADWAL TI --->>>
-def _get_jadwal_ti_response(original_text_lower, sapaan):
-    """
-    Mencari dan memformat jadwal TI dari JADWAL_TI_DATA berdasarkan input pengguna.
-    """
-    if not JADWAL_TI_DATA or "jadwal_kuliah" not in JADWAL_TI_DATA or "TI" not in JADWAL_TI_DATA["jadwal_kuliah"]:
-        return (f"Maaf {sapaan}, data jadwal kuliah Teknik Informatika tidak dapat dimuat atau kosong saat ini. "
-                f"Anda bisa cek link ini sebagai alternatif: {LINK_JADWAL_TI}" if LINK_JADWAL_TI and "[GANTI" not in LINK_JADWAL_TI else
-                "Silakan cek pengumuman resmi dari prodi.")
-
-    # Asumsi periode, bisa dibuat lebih dinamis jika data punya banyak periode
-    periode = "2024-2025"
-    schedule_data = JADWAL_TI_DATA["jadwal_kuliah"]["TI"].get(periode)
-
-    if not schedule_data:
-        return (f"Maaf {sapaan}, data jadwal kuliah Teknik Informatika untuk periode {periode} belum tersedia di data saya. "
-                f"Coba cek link ini: {LINK_JADWAL_TI}" if LINK_JADWAL_TI and "[GANTI" not in LINK_JADWAL_TI else
-                "Silakan cek pengumuman resmi dari prodi.")
-
-    found_schedule = []
-    search_term = None # Untuk menyimpan matkul atau hari yang dicari
-
-    # 1. Cek apakah user mencari mata kuliah spesifik
-    # Buat daftar nama matkul untuk pencocokan
-    course_names = [name.lower() for name in schedule_data.keys()]
-    matched_course = None
-    for course_name_lower in course_names:
-        # Cari nama matkul dalam teks input (butuh penyesuaian agar lebih akurat)
-        if course_name_lower in original_text_lower:
-             # Cari nama matkul asli (dengan kapitalisasi)
-             for real_name, details in schedule_data.items():
-                 if real_name.lower() == course_name_lower:
-                     matched_course = real_name
-                     search_term = matched_course # Simpan nama matkul yang cocok
-                     found_schedule.append((real_name, details))
-                     break # Ambil yang pertama cocok
-             if matched_course: break # Hentikan pencarian matkul
-
-    # 2. Jika tidak mencari matkul, cek apakah mencari hari spesifik
-    if not found_schedule:
-        days_map = {"senin": "Senin", "selasa": "Selasa", "rabu": "Rabu",
-                    "kamis": "Kamis", "jumat": "Jumat", "sabtu": "Sabtu"}
-        matched_day_key = None
-        for day_key, day_proper in days_map.items():
-            # Cari keyword hari + "hari" (misal "hari senin") atau hanya nama hari
-            if f"hari {day_key}" in original_text_lower or (day_key in original_text_lower.split() and "hari" in original_text_lower):
-                matched_day_key = day_key
-                search_term = f"Hari {day_proper}" # Simpan hari yang cocok
-                break
-            # Opsi: cari hanya nama hari jika input pendek
-            elif len(original_text_lower.split()) <= 3 and day_key in original_text_lower.split():
-                 matched_day_key = day_key
-                 search_term = f"Hari {day_proper}"
-                 break
-
-        if matched_day_key:
-            day_proper_case = days_map[matched_day_key]
-            for course_name, details in schedule_data.items():
-                if details.get("hari", "").lower() == day_proper_case.lower():
-                    found_schedule.append((course_name, details))
-            # Urutkan berdasarkan jam mulai jika ditemukan untuk hari
-            found_schedule.sort(key=lambda item: item[1].get("jam", "99:99"))
-
-    # 3. Buat Teks Respons
-    response_parts = []
-    if found_schedule:
-        if search_term:
-            response_parts.append(f"Berikut jadwal yang saya temukan untuk **{search_term}** (Periode {periode}):\n")
-        else: # Seharusnya tidak terjadi jika found_schedule True, tapi sbg fallback
-             response_parts.append(f"Berikut jadwal yang relevan (Periode {periode}):\n")
-
-        for course_name, details in found_schedule:
-            jam = details.get("jam", "N/A")
-            ruang = details.get("ruang", "N/A")
-            dosen = details.get("dosen", "N/A")
-            hari = details.get("hari", "N/A")
-            semester = details.get("semester", "N/A")
-            kelas = details.get("kelas", "N/A")
-
-            # Format berbeda jika mencari matkul vs hari
-            if matched_course: # Jika fokus pada 1 matkul
-                 response_parts.append(f"- **{course_name}**:")
-                 response_parts.append(f"  - Hari/Jam: {hari}, {jam}")
-                 response_parts.append(f"  - Ruang: {ruang}")
-                 response_parts.append(f"  - Dosen: {dosen}")
-                 response_parts.append(f"  - Kelas/Semester: {kelas} / Sem {semester}")
-            else: # Jika menampilkan daftar untuk satu hari
-                 response_parts.append(f"- **{course_name}** ({jam}) di R.{ruang} - Dosen: {dosen} (Kelas: {kelas} / Sem: {semester})")
-
-        response_parts.append("\n*Jadwal dapat berubah, selalu konfirmasi ke prodi/dosen.*")
-
-    # Jika tidak ada yang cocok (tidak cari matkul/hari spesifik ATAU tidak ditemukan)
-    else:
-        response_parts.append(f"Saya bisa bantu cek jadwal kuliah **Teknik Informatika** untuk periode {periode}.")
-        # Berikan opsi atau link umum
-        response_parts.append("Apakah Anda ingin tahu jadwal untuk:\n"
-                            "- **Mata kuliah spesifik?** (Contoh: 'jadwal metode numerik')\n"
-                            "- **Hari tertentu?** (Contoh: 'jadwal kuliah hari senin')")
-        if LINK_JADWAL_TI and "[GANTI" not in LINK_JADWAL_TI:
-            response_parts.append(f"\nAtau Anda bisa cek link jadwal lengkap (jika tersedia) di sini: {LINK_JADWAL_TI}")
-        else:
-             response_parts.append("\nSilakan cek juga pengumuman resmi dari prodi untuk jadwal lengkap.")
-
-    return "\n".join(response_parts)
-# <<<--- AKHIR FUNGSI BARU --->>>
-
-
-def generate_intent_response(nlu_result, user_name, original_text=""):
-    """
-    Menghasilkan teks respons berdasarkan intent yang terdeteksi.
-    Mengembalikan tuple: (response_text, final_intent_category)
-    """
-    intent = nlu_result['intent']
-    score = nlu_result['score'] # Ambil skor untuk referensi jika perlu
-    entities = nlu_result['entities']
-    detected_prodi_list = entities.get("PRODI", [])
-    detected_lab_list = entities.get("LAB", [])
-    # Ambil yang pertama terdeteksi (mungkin perlu logika lebih kompleks jika ada > 1)
-    detected_prodi = detected_prodi_list[0] if detected_prodi_list else None
-    detected_lab = detected_lab_list[0] if detected_lab_list else None
-    safe_user_name = escape(user_name) if user_name else None
-    # Gunakan sapaan yang lebih konsisten
-    sapaan_untuk_user = f"{safe_user_name}, " if safe_user_name else "" # Nama sudah di-escape
-    sapaan_awal_kalimat = f"Baik {safe_user_name}" if safe_user_name else "Baik" # Untuk awal kalimat
-
-
-    # Default response jika tidak ada handler intent yang cocok
-    response_text = f"Maaf {sapaan_untuk_user}saya belum bisa memproses permintaan terkait '{intent}' saat ini. Mungkin bisa coba tanyakan dengan cara lain?"
-    final_intent_category = intent if intent else "unhandled_intent" # Kategori awal
-
-    # --- Logika Respons per Intent ---
-    # Pastikan menggunakan sapaan yang tepat, konstanta link, dan cek ketersediaan data eksternal
-
-    if intent == "greeting_ft":
-        # Respon sapaan bervariasi tergantung ada nama atau tidak
-        if safe_user_name:
-             response_text = random.choice([
-                 f"Halo lagi {safe_user_name}! Ada lagi yang bisa saya bantu?",
-                 f"Hai {safe_user_name}! Senang bertemu Anda lagi.",
-                 f"Ya {safe_user_name}, ada keperluan apa lagi?"
-             ])
-        else:
-            response_text = random.choice([
-                "Halo! Ada yang bisa saya bantu?",
-                "Hai! Selamat datang di chatbot Fakultas Teknik UNANDA.",
-                "Salam! Ada yang ingin ditanyakan seputar Fakultas Teknik?"
-            ])
-
-    elif intent == "goodbye_ft":
-        response_text = random.choice([
-            f"{sapaan_awal_kalimat}, sampai jumpa!", # Gunakan sapaan awal kalimat
-            "Sampai jumpa!",
-            "Senang bisa membantu. Jika ada lagi, jangan ragu bertanya.",
-            "Terima kasih telah bertanya!"
-            ])
-
-    elif intent == "thankyou_ft":
-        response_text = random.choice([
-            f"Sama-sama, {safe_user_name}!" if safe_user_name else "Sama-sama!",
-            "Dengan senang hati!",
-            "Tidak masalah!",
-            "Senang bisa membantu!"
-            ])
-
-    elif intent == "ask_bot_identity":
-         response_text = ("Saya adalah chatbot Fakultas Teknik Universitas Andi Djemma. "
-                          "Saya dirancang untuk membantu memberikan informasi seputar fakultas, "
-                          "Penerimaan Mahasiswa Baru (PMB), biaya kuliah (SPP, praktikum), "
-                          "informasi prodi & lab, jadwal kuliah (termasuk detail jadwal TI), panduan KRS dan pembayaran, serta kontak. " # <--- Sebutkan jadwal TI
-                          "Ada yang bisa saya bantu?")
-
-    elif intent == "info_biaya_umum":
-        # Intent ini harusnya mengarahkan user untuk lebih spesifik
-        final_intent_category = "disambiguate_cost"
-        response_text = (f"Tentu {sapaan_untuk_user}. Saya bisa bantu informasi biaya di Fakultas Teknik. "
-                         "Jenis biaya apa yang spesifik Anda maksud?\n\n"
-                         "1. **SPP/UKT** (Biaya kuliah per semester)\n"
-                         "2. **Praktikum/Laboratorium** (Biaya kegiatan di lab)\n"
-                         "3. **Pendaftaran Mahasiswa Baru (PMB)** (Biaya formulir, tes, orientasi awal, dll.)\n\n"
-                         "Silakan sebutkan jenisnya (misal: 'info SPP', 'biaya praktikum', atau 'biaya PMB').")
-
-    elif intent == "info_spp_ft":
-        # Panggil fungsi helper khusus SPP
-        response_text = _get_spp_response(original_text, detected_prodi, safe_user_name)
-
-    elif intent == "cara_bayar_spp_ft":
-         # Arahkan ke panduan spesifik atau info umum
-         response_text = (f"{sapaan_untuk_user}Untuk pembayaran SPP/UKT (setelah Anda resmi menjadi mahasiswa), "
-                          "biasanya dilakukan melalui sistem akademik online Sevima/SIAKAD Cloud. "
-                          "Apakah Anda ingin tahu:\n"
-                          "1. **Panduan bayar via Tokopedia** (jika tersedia)?\n"
-                          "2. **Informasi metode pembayaran lain** (misal transfer bank)?\n"
-                          "3. **Batas waktu pembayaran** semester ini?\n\n"
-                          "Mohon konfirmasi ke bagian keuangan atau cek pengumuman resmi fakultas/universitas "
-                          "untuk detail metode pembayaran yang valid dan jadwalnya.")
-         # Jika panduan Tokopedia ada, tawarkan langsung
-         if PAYMENT_SEVIMA_TOKOPEDIA_GUIDE and "tidak ditemukan" not in PAYMENT_SEVIMA_TOKOPEDIA_GUIDE:
-             response_text += "\n\nJika ingin panduan pembayaran via Tokopedia, ketik 'cara bayar sevima tokopedia'."
-
-    elif intent == "cara_bayar_sevima_tokopedia":
-         if PAYMENT_SEVIMA_TOKOPEDIA_GUIDE and "tidak ditemukan" not in PAYMENT_SEVIMA_TOKOPEDIA_GUIDE:
-              response_text = (f"{sapaan_awal_kalimat}, ini panduan umum membayar uang kuliah melalui Sevima Pay " # Ganti sapaan
-                               f"di platform Tokopedia:\n\n{PAYMENT_SEVIMA_TOKOPEDIA_GUIDE}\n\n"
-                               "**Penting:** Pastikan Anda mengikuti langkah-langkah ini dengan benar, "
-                               "memilih tagihan yang sesuai, dan membayar sebelum batas waktu yang ditentukan. "
-                               "Simpan bukti pembayaran Anda.")
-         else:
-             response_text = (f"Maaf {sapaan_untuk_user}, panduan spesifik pembayaran via Tokopedia belum tersedia di data saya. "
-                              "Silakan cek pengumuman resmi dari bagian keuangan atau universitas mengenai metode pembayaran yang tersedia.")
-
-    elif intent == "info_krs_sevima":
-         if KRS_SEVIMA_GUIDE and "tidak ditemukan" not in KRS_SEVIMA_GUIDE:
-              response_text = (f"{sapaan_awal_kalimat}, berikut panduan umum pengisian Kartu Rencana Studi (KRS) " # Ganti sapaan
-                               f"di sistem Sevima/SIAKAD Cloud:\n\n{KRS_SEVIMA_GUIDE}\n\n"
-                               "**Ingat:** Selalu perhatikan **jadwal resmi pengisian KRS** yang dikeluarkan oleh fakultas/universitas. "
-                               "Jika ada mata kuliah yang tidak muncul, error, atau Anda ragu, segera konsultasikan "
-                               "dengan **Dosen Pembimbing Akademik (PA)** Anda atau bagian akademik.")
-         else:
-             response_text = (f"Maaf {sapaan_untuk_user}, panduan pengisian KRS via Sevima belum tersedia di data saya. "
-                              "Secara umum, Anda perlu login ke sistem SIAKAD/Sevima pada jadwal yang ditentukan, "
-                              "memilih mata kuliah yang akan diambil sesuai dengan semester dan kurikulum Anda, "
-                              "lalu menyimpannya. Pastikan status KRS Anda disetujui oleh Dosen PA. "
-                              "Untuk panduan detail, silakan cek sumber informasi resmi dari kampus.")
-
-    # <<<--- MODIFIKASI HANDLER JADWAL KULIAH --->>>
-    elif intent == "jadwal_kuliah_ft":
-        # Jika prodi terdeteksi adalah TI, coba gunakan data JSON
-        if detected_prodi == "Teknik Informatika":
-            response_text = _get_jadwal_ti_response(original_text.lower(), sapaan_untuk_user)
-        # Jika prodi lain terdeteksi atau tidak ada prodi terdeteksi
-        else:
-            base_response = f"Untuk jadwal kuliah Fakultas Teknik semester ini, {sapaan_untuk_user}berikut link yang mungkin relevan:\n"
-            links_found = []
-            # Tampilkan link prodi yang terdeteksi (selain TI karena sudah ditangani di atas)
-            if detected_prodi == "Teknik Sipil" and LINK_JADWAL_SIPIL and "[GANTI" not in LINK_JADWAL_SIPIL: links_found.append(f"- **Teknik Sipil**: {LINK_JADWAL_SIPIL}")
-            if detected_prodi == "Teknik Pertambangan" and LINK_JADWAL_TAMBANG and "[GANTI" not in LINK_JADWAL_TAMBANG: links_found.append(f"- **Teknik Pertambangan**: {LINK_JADWAL_TAMBANG}")
-
-            # Jika tidak ada prodi spesifik terdeteksi ATAU link prodi spesifik tidak ada, tampilkan semua link (termasuk TI sbg fallback)
-            if not detected_prodi or not links_found:
-                if LINK_JADWAL_TI and "[GANTI" not in LINK_JADWAL_TI: links_found.append(f"- **Teknik Informatika**: {LINK_JADWAL_TI} (atau tanya saya detailnya)") # Info tambahan
-                if LINK_JADWAL_SIPIL and "[GANTI" not in LINK_JADWAL_SIPIL: links_found.append(f"- **Teknik Sipil**: {LINK_JADWAL_SIPIL}")
-                if LINK_JADWAL_TAMBANG and "[GANTI" not in LINK_JADWAL_TAMBANG: links_found.append(f"- **Teknik Pertambangan**: {LINK_JADWAL_TAMBANG}")
-                if LINK_JADWAL_UMUM_FT and "[GANTI" not in LINK_JADWAL_UMUM_FT: links_found.append(f"- **Umum Fakultas**: {LINK_JADWAL_UMUM_FT}")
-
-            if links_found:
-                response_text = base_response + "\n".join(links_found)
-                response_text += "\n\nJadwal biasanya dibagikan oleh masing-masing prodi atau koordinator mata kuliah. Anda juga bisa cek pengumuman di grup mahasiswa atau sistem Sevima/SIAKAD."
-                # Jika user bertanya umum dan data TI ada, beri tahu bisa tanya detail
-                if not detected_prodi and JADWAL_TI_DATA:
-                    response_text += "\nUntuk **Teknik Informatika**, saya bisa bantu cek jadwal mata kuliah atau hari tertentu jika Anda bertanya lebih spesifik (misal: 'jadwal metode numerik' atau 'jadwal hari senin')."
-            else: # Jika tidak ada link sama sekali
-                response_text = (f"Maaf {sapaan_untuk_user}, saya belum memiliki link jadwal kuliah yang bisa dibagikan saat ini. "
-                                 "Silakan cek pengumuman resmi dari prodi Anda, grup mahasiswa, atau sistem Sevima/SIAKAD. "
-                                 "Jadwal biasanya keluar mendekati awal semester.")
-            # Tambahkan catatan jika prodi terdeteksi (selain TI) tapi linknya tidak ada
-            if detected_prodi and detected_prodi != "Teknik Informatika" and not any(detected_prodi in link_text for link_text in links_found) and links_found:
-                response_text += f"\n(Link spesifik untuk {detected_prodi} belum saya temukan, tapi Anda bisa cek link umum di atas)."
-    # <<<--- AKHIR MODIFIKASI HANDLER JADWAL KULIAH --->>>
-
-
-    elif intent == "fasilitas_umum_ft":
-        response_text = (f"{sapaan_untuk_user}Fasilitas umum yang tersedia di lingkungan Fakultas Teknik UNANDA antara lain:\n"
-                         "- Ruang kuliah yang dilengkapi AC dan LCD Proyektor.\n"
-                         "- Jaringan WiFi di beberapa area kampus.\n"
-                         "- Perpustakaan fakultas/universitas.\n"
-                         "- Laboratorium komputer dan laboratorium spesifik per prodi.\n"
-                         "- Area diskusi mahasiswa.\n"
-                         "- Kantin atau area jajan terdekat.\n"
-                         "- Mushola/Tempat ibadah.\n"
-                         "- Toilet.\n\n"
-                         "Untuk detail fasilitas laboratorium spesifik prodi, Anda bisa tanyakan misalnya 'info lab informatika'.")
-
-    # (Handler Info Lab, Info Prodi, Biaya Praktikum, Kontak, PMB, Pembelajaran tidak berubah signifikan, hanya penyesuaian sapaan)
-    # Gabungkan handler Info Lab menjadi satu blok logis
-    elif intent.startswith("info_lab_") or (detected_lab and intent not in ["tanya_pembelajaran_lab", "tanya_biaya_praktikum"]):
-        target_prodi_from_intent = None
-        if intent == "info_lab_sipil": target_prodi_from_intent = "Teknik Sipil"
-        elif intent == "info_lab_informatika": target_prodi_from_intent = "Teknik Informatika"
-        elif intent == "info_lab_pertambangan": target_prodi_from_intent = "Teknik Pertambangan"
-
-        # Prioritaskan prodi dari NLU jika ada, baru dari intent
-        target_prodi = detected_prodi or target_prodi_from_intent
-
-        response_parts = [f"{sapaan_awal_kalimat}. Mengenai laboratorium di Fakultas Teknik:"] # Ganti sapaan
-
-        # Cek ketersediaan data yang relevan
-        has_learning_data = bool(LEARNING_CONTENT)
-        has_fee_data = bool(FT_FEES and "praktikum" in FT_FEES)
-
-        if not has_learning_data and not has_fee_data:
-             response_parts.append("Maaf, informasi detail mengenai laboratorium (materi atau biaya) tidak dapat dimuat saat ini.")
-        else:
-            # Jika ada target prodi (dari NLU atau intent)
-            if target_prodi:
-                response_parts.append(f"\n**Untuk Prodi {target_prodi}:**")
-                labs_in_prodi = []
-                if has_learning_data and target_prodi in LEARNING_CONTENT:
-                    # Ambil nama lab dari kunci di learning content, kecuali _prodi_summary
-                    labs_in_prodi = [lab for lab in LEARNING_CONTENT[target_prodi] if not lab.startswith("_")]
-
-                # Jika user menyebut lab spesifik DAN lab itu ada di prodi target
-                if detected_lab and detected_lab in labs_in_prodi:
-                    response_parts.append(f"- Fokus pada: **{detected_lab}**.")
-                    # Tambahkan info biaya jika ada
-                    if has_fee_data:
-                         fee_info = FT_FEES["praktikum"].get(detected_lab, FT_FEES["praktikum"].get("_default"))
-                         if fee_info:
-                             biaya_partisipasi = fee_info.get('amount')
-                             biaya_ujian = fee_info.get('ujian_akhir_praktikum_amount')
-                             notes = fee_info.get('notes', '')
-                             biaya_text = f"  Biaya partisipasi sekitar {format_idr(biaya_partisipasi)}"
-                             if biaya_ujian is not None:
-                                 biaya_text += f" + {format_idr(biaya_ujian)} (ujian akhir)."
-                             else: biaya_text += "."
-                             response_parts.append(biaya_text)
-                             if notes: response_parts.append(f"  Catatan: {notes}")
-                         else: response_parts.append("  Informasi biaya spesifik lab ini belum tersedia.")
-                    # Tambahkan ajakan tanya materi
-                    if has_learning_data and detected_lab in LEARNING_CONTENT[target_prodi]:
-                        response_parts.append(f"  Anda bisa tanya 'apa yang dipelajari di {detected_lab}?'")
-                # Jika user tidak menyebut lab spesifik TAPI ada daftar lab di prodi target
-                elif labs_in_prodi:
-                    response_parts.append(f"  Terdapat beberapa laboratorium utama, antara lain: **{', '.join(labs_in_prodi)}**.")
-                    # Berikan info biaya default jika ada
-                    if has_fee_data:
-                         fee_info = FT_FEES["praktikum"].get("_default")
-                         if fee_info:
-                             biaya_partisipasi = fee_info.get('amount')
-                             biaya_ujian = fee_info.get('ujian_akhir_praktikum_amount')
-                             notes = fee_info.get('notes', '')
-                             biaya_text = f"  Biaya praktikum umumnya sekitar {format_idr(biaya_partisipasi)}"
-                             if biaya_ujian is not None:
-                                 biaya_text += f" + {format_idr(biaya_ujian)} (ujian akhir)."
-                             else: biaya_text += "."
-                             response_parts.append(biaya_text)
-                             if notes: response_parts.append(f"  Catatan umum: {notes}")
-                         else: response_parts.append("  Informasi biaya praktikum umum belum tersedia.")
-                    response_parts.append("  Anda bisa tanya info lebih detail tentang lab spesifik (misal: 'info lab jaringan komputer' atau 'biaya lab hidrolika').")
-                # Jika tidak ada daftar lab di prodi target
-                else:
-                    response_parts.append(f"  Maaf, daftar laboratorium spesifik untuk Prodi {target_prodi} belum tersedia di data saya.")
-            # Jika tidak ada target prodi (user tanya umum 'info lab')
-            else:
-                all_labs = list(LAB_TERMS.keys()) # Ambil dari terms sebagai fallback list
-                if all_labs:
-                   response_parts.append("\nFakultas Teknik memiliki berbagai laboratorium untuk mendukung pembelajaran.")
-                   # Sebutkan beberapa contoh jika daftarnya panjang
-                   if len(all_labs) > 5:
-                        response_parts.append(f"Beberapa di antaranya seperti: **{', '.join(random.sample(all_labs, 5))}**...")
-                   else:
-                        response_parts.append(f"Antara lain: **{', '.join(all_labs)}**.")
-                   # Tambahkan info biaya default jika ada
-                   if has_fee_data:
-                        fee_info = FT_FEES["praktikum"].get("_default")
-                        if fee_info:
-                             biaya_partisipasi = fee_info.get('amount')
-                             biaya_ujian = fee_info.get('ujian_akhir_praktikum_amount')
-                             notes = fee_info.get('notes', '')
-                             biaya_text = f"\nBiaya praktikum umumnya sekitar {format_idr(biaya_partisipasi)}"
-                             if biaya_ujian is not None:
-                                 biaya_text += f" + {format_idr(biaya_ujian)} (ujian akhir)."
-                             else: biaya_text += "."
-                             response_parts.append(biaya_text)
-                             if notes: response_parts.append(f"Catatan umum: {notes}")
-                   response_parts.append("\nApakah ada laboratorium spesifik atau dari prodi tertentu yang ingin Anda ketahui lebih lanjut?")
-                else:
-                   response_parts.append("\nMaaf, informasi umum mengenai laboratorium belum tersedia saat ini.")
-
-        response_text = "\n".join(response_parts)
-
-
-    # Gabungkan handler Info Prodi
-    elif intent.startswith("info_prodi_"):
-        target_prodi = None
-        if intent == "info_prodi_sipil": target_prodi = "Teknik Sipil"
-        elif intent == "info_prodi_informatika": target_prodi = "Teknik Informatika"
-        elif intent == "info_prodi_pertambangan": target_prodi = "Teknik Pertambangan"
-
-        # Prioritaskan NLU jika ada
-        target_prodi = detected_prodi or target_prodi
-
-        # Siapkan data link dan info singkat (bisa juga dari JSON)
-        prodi_links = {
-             "Teknik Sipil": LINK_PRODI_SIPIL,
-             "Teknik Informatika": LINK_PRODI_INFORMATIKA,
-             "Teknik Pertambangan": LINK_PRODI_TAMBANG
-        }
-        prodi_general_info = {
-             "Teknik Sipil": "Fokus pada perancangan, pembangunan, dan pemeliharaan infrastruktur seperti gedung, jembatan, jalan, dan sistem air.",
-             "Teknik Informatika": "Mempelajari dasar-dasar ilmu komputer, pengembangan perangkat lunak (software), jaringan komputer, kecerdasan buatan, dan manajemen data.",
-             "Teknik Pertambangan": "Berkaitan dengan eksplorasi, penambangan (ekstraksi), dan pengolahan sumber daya mineral dan batubara secara efisien dan aman."
-        }
-
-        if target_prodi and target_prodi in prodi_links:
-            link = prodi_links[target_prodi]
-            info = prodi_general_info.get(target_prodi, "")
-            response_text = f"{sapaan_untuk_user}Berikut informasi umum mengenai **Prodi {target_prodi}**:\n"
-            if info: response_text += f"\n- **Fokus Utama**: {info}\n"
-            # Cek link valid sebelum ditampilkan
-            if link and "[GANTI" not in link and "http" in link:
-                response_text += f"- **Website/Info Akademik Lengkap**: {link}\n"
-            else:
-                 response_text += f"- Website Prodi: (Link belum tersedia)\n"
-
-            # Tambahkan ajakan tanya pembelajaran jika datanya ada
-            if LEARNING_CONTENT and target_prodi in LEARNING_CONTENT and "_prodi_summary" in LEARNING_CONTENT[target_prodi]:
-                response_text += f"\nAnda juga bisa bertanya 'apa saja yang dipelajari di {target_prodi}?' untuk mendapatkan gambaran materi kuliahnya."
-            # Tambahkan ajakan tanya SPP
-            if SPP_DATA and target_prodi in SPP_DATA:
-                 response_text += f"\nUntuk biaya kuliah, Anda bisa tanya 'berapa spp {target_prodi}?'."
-
-        elif target_prodi: # Prodi disebut tapi tidak ada di data link/info
-            response_text = f"{sapaan_untuk_user}Maaf, informasi umum untuk Prodi {target_prodi} belum tersedia lengkap di data saya. Anda bisa coba cek langsung di website Fakultas Teknik UNANDA."
-        else: # User tanya 'info prodi' tanpa spesifik
-            prodi_list = list(prodi_links.keys())
-            if prodi_list:
-                 response_text = f"{sapaan_untuk_user}Fakultas Teknik UNANDA saat ini memiliki program studi: **{', '.join(prodi_list)}**. Prodi mana yang spesifik ingin Anda ketahui informasinya?"
-            else:
-                 response_text = f"{sapaan_untuk_user}Maaf, daftar program studi di Fakultas Teknik belum tersedia di data saya."
-
-    elif intent == "tanya_biaya_praktikum":
-        if not FT_FEES or "praktikum" not in FT_FEES:
-            response_text = f"Maaf {sapaan_untuk_user}, informasi biaya praktikum tidak dapat dimuat saat ini. Silakan hubungi laboratorium terkait atau bagian akademik."
-        else:
-            biaya_praktikum_info = FT_FEES["praktikum"]
-            response_parts = [f"{sapaan_awal_kalimat}, terkait biaya praktikum di Fakultas Teknik:"] # Ganti sapaan
-            info = None
-            lab_specified = False
-            default_info = biaya_praktikum_info.get("_default") # Ambil info default jika ada
-
-            # Jika user menyebut lab spesifik
-            if detected_lab:
-                lab_name = detected_lab
-                lab_specified = True
-                # Cari info spesifik lab itu, fallback ke default jika tidak ada
-                info = biaya_praktikum_info.get(lab_name, default_info)
-                if lab_name in biaya_praktikum_info:
-                    response_parts.append(f"\nUntuk praktikum **{lab_name}**:")
-                elif default_info: # Info spesifik tidak ada, tapi default ada
-                     response_parts.append(f"\nUntuk praktikum **{lab_name}** (menggunakan info biaya umum):")
-                else: # Info spesifik dan default tidak ada
-                     response_parts.append(f"\nMaaf, info biaya spesifik untuk **{lab_name}** belum tersedia.")
-                     info = None # Pastikan info None
-            # Jika user tidak menyebut lab spesifik, gunakan default
-            elif default_info:
-                info = default_info
-                response_parts.append("\nSecara umum untuk praktikum di Fakultas Teknik:")
-            # Jika tidak menyebut lab dan default juga tidak ada
-            else:
-                 response_parts.append("\nMaaf, informasi biaya praktikum umum belum tersedia.")
-                 info = None # Pastikan info None
-
-            # Jika ada info biaya yang bisa ditampilkan (spesifik atau default)
-            if info:
-                details = []
-                biaya_partisipasi = info.get('amount')
-                biaya_ujian = info.get('ujian_akhir_praktikum_amount')
-                notes = info.get('notes', 'Biaya dapat berubah, mohon konfirmasi ke lab/akademik.') # Default note
-
-                if biaya_partisipasi is not None:
-                    details.append(f"- Biaya partisipasi/modul utama: **{format_idr(biaya_partisipasi)}**.")
-                if biaya_ujian is not None:
-                    details.append(f"- Biaya ujian akhir praktikum: **{format_idr(biaya_ujian)}**.")
-
-                if details:
-                    response_parts.extend(details)
-                else: # Jika amount dan ujian_akhir tidak ada di data info
-                    response_parts.append("Detail komponen biaya (partisipasi/ujian) belum tersedia.")
-
-                response_parts.append(f"- Catatan: {notes}")
-
-            # Tambahkan ajakan jika user belum spesifik
-            if not lab_specified and default_info:
-                 response_parts.append("\nJika Anda ingin tahu biaya lab lain, silakan sebutkan nama labnya (contoh: 'biaya lab software').")
-            elif not lab_specified and not default_info and list(biaya_praktikum_info.keys()) != ['_default']:
-                 response_parts.append("\nSebutkan nama lab spesifik jika Anda perlu info biayanya.")
-
-
-            response_text = "\n".join(filter(None, response_parts)) # Gabungkan dan hilangkan baris kosong
-
-    elif intent == "kontak_ft":
-         # Pastikan KONTAK_TU_INFO sudah diganti
-         if "[GANTI" in KONTAK_TU_INFO:
-             response_text = (f"{sapaan_untuk_user}Informasi kontak Tata Usaha (TU) belum lengkap di data saya. "
-                              "Anda bisa coba cek langsung di website resmi Fakultas Teknik UNANDA untuk informasi kontak terbaru.")
-         else:
-              response_text = f"{sapaan_untuk_user}{KONTAK_TU_INFO}"
-
-
-    # --- Handler PMB (Penerimaan Mahasiswa Baru) ---
-    elif intent == "info_pmb_umum":
-        if not PMB_INFO:
-            response_text = f"Maaf {sapaan_untuk_user}, informasi Penerimaan Mahasiswa Baru (PMB) tidak dapat dimuat saat ini. Silakan cek website resmi UNANDA."
-        else:
-            website = PMB_INFO.get('website', '')
-            kontak = PMB_INFO.get('contact_person', '')
-            response_text = "Informasi lengkap mengenai Penerimaan Mahasiswa Baru (PMB) UNANDA, termasuk untuk Fakultas Teknik, "
-            if website and 'http' in website:
-                 response_text += f"biasanya dapat diakses melalui website resmi PMB di: **{website}**\n\n"
-            else:
-                 response_text += "biasanya dapat diakses melalui website resmi PMB UNANDA.\n\n"
-
-            response_text += ("Di sana Anda bisa menemukan informasi tentang:\n"
-                              "- Jadwal pendaftaran\n"
-                              "- Jalur seleksi yang tersedia\n"
-                              "- Persyaratan pendaftaran\n"
-                              "- Rincian biaya awal\n"
-                              "- Alur dan prosedur pendaftaran online\n\n")
-
-            if kontak:
-                response_text += f"Jika ada pertanyaan lebih lanjut mengenai PMB, Anda juga bisa menghubungi kontak panitia PMB: **{kontak}**.\n\n"
-
-            response_text += "Apakah ada informasi spesifik terkait PMB yang ingin Anda tanyakan kepada saya? (misalnya tentang jalur, biaya awal, atau cara daftar)"
-
-    elif intent == "info_jalur_pmb":
-        if not PMB_INFO or not PMB_INFO.get('jalur'):
-             response_text = f"Maaf {sapaan_untuk_user}, informasi detail mengenai jalur pendaftaran PMB tidak dapat dimuat. Silakan cek website PMB resmi."
-        else:
-            response_parts = [f"{sapaan_awal_kalimat}, berikut adalah jalur pendaftaran yang umumnya tersedia (berdasarkan data terakhir):"] # Ganti sapaan
-            jalur_data = PMB_INFO.get('jalur', {})
-            website = PMB_INFO.get('website', '')
-            if not jalur_data:
-                 response_parts.append("- Informasi jalur pendaftaran belum tersedia.")
-            else:
-                for key, info in jalur_data.items():
-                    name = info.get('name', key.replace('_', ' ').title()) # Nama default dari key
-                    desc = info.get('description', 'Informasi detail belum tersedia.')
-                    response_parts.append(f"\n- **{name}**: {desc}")
-
-            response_parts.append("\n\n**Penting:** Persyaratan detail, kuota, dan jadwal spesifik untuk setiap jalur dapat berubah setiap tahun.")
-            if website and 'http' in website:
-                response_parts.append(f"Pastikan Anda selalu memeriksa informasi terbaru dan paling akurat di website PMB resmi: **{website}**")
-            else:
-                 response_parts.append("Pastikan Anda selalu memeriksa informasi terbaru dan paling akurat di website PMB resmi UNANDA.")
-            response_text = "\n".join(response_parts)
-
-    elif intent == "info_biaya_pmb":
-        if not PMB_INFO or not PMB_INFO.get('fees'):
-            response_text = f"Maaf {sapaan_untuk_user}, informasi rincian biaya awal PMB tidak dapat dimuat. Silakan cek website PMB resmi."
-        else:
-            response_parts = [f"{sapaan_awal_kalimat}, berikut adalah perkiraan komponen biaya awal yang terkait dengan Pendaftaran Mahasiswa Baru (berdasarkan data terakhir):"] # Ganti sapaan
-            fees_data = PMB_INFO.get('fees', {})
-            website = PMB_INFO.get('website', '')
-            found_fee = False
-            if not fees_data:
-                 response_parts.append("- Rincian biaya pendaftaran belum tersedia.")
-            else:
-                for key, info in fees_data.items():
-                    name = info.get('name', key.replace('_', ' ').title())
-                    amount = info.get('amount')
-                    notes = info.get('notes', '')
-
-                    if amount is not None:
-                        response_parts.append(f"\n- **{name}**: **{format_idr(amount)}**")
-                        if notes: response_parts.append(f"  *({notes})*")
-                        found_fee = True
-                    # Handle jika amount tidak ada tapi ada nama/notes
-                    elif name != key: # Hanya tampilkan jika ada nama eksplisit
-                         response_parts.append(f"\n- **{name}**: Informasi biaya belum tersedia")
-                         if notes: response_parts.append(f"  *({notes})*")
-
-
-            if found_fee:
-                response_parts.append("\n\n**Penting:**")
-                response_parts.append("- Ini adalah **biaya awal** yang terkait pendaftaran dan mungkin kegiatan orientasi/pembekalan.")
-                response_parts.append("- Biaya ini **umumnya belum termasuk** biaya SPP/UKT untuk semester pertama dan biaya variabel lainnya (seperti praktikum jika ada di semester 1).")
-                response_parts.append("- Jumlah dan komponen biaya dapat berubah. Selalu konfirmasi rincian biaya terbaru.")
-
-            if website and 'http' in website:
-                response_parts.append(f"Cek rincian biaya resmi dan terbaru di website PMB: **{website}**")
-            else:
-                 response_parts.append("Cek rincian biaya resmi dan terbaru di website PMB UNANDA.")
-
-            response_text = "\n".join(response_parts)
-
-    elif intent == "cara_daftar_pmb":
-        if not PMB_INFO or not PMB_INFO.get('general_steps'):
-             response_text = f"Maaf {sapaan_untuk_user}, panduan umum langkah pendaftaran PMB tidak dapat dimuat. Silakan cek alur pendaftaran di website PMB resmi."
-        else:
-            response_parts = [f"Siap {safe_user_name}! Berikut adalah gambaran umum langkah-langkah mendaftar sebagai mahasiswa baru secara online (berdasarkan prosedur umum):"] # Ganti sapaan
-            steps_data = PMB_INFO.get('general_steps', [])
-            website = PMB_INFO.get('website', '')
-            if not steps_data:
-                 response_parts.append("- Langkah-langkah pendaftaran belum tersedia.")
-            else:
-                for i, step in enumerate(steps_data):
-                    response_parts.append(f"{i+1}. {step}")
-
-            response_parts.append("\n\n**Mohon Diperhatikan:**")
-            response_parts.append("- Ini adalah alur umum, langkah spesifik mungkin sedikit berbeda tergantung jalur pendaftaran dan sistem yang digunakan.")
-            response_parts.append("- Pastikan Anda membaca **semua petunjuk** dengan teliti di portal pendaftaran.")
-            response_parts.append("- Siapkan **semua dokumen** yang diperlukan dalam format digital (scan/foto) sesuai persyaratan.")
-            response_parts.append("- Perhatikan **jadwal dan batas waktu** setiap tahapan.")
-
-            if website and 'http' in website:
-                response_parts.append(f"\nUntuk panduan paling akurat dan memulai pendaftaran, kunjungi website PMB resmi: **{website}**")
-            else:
-                 response_parts.append("\nUntuk panduan paling akurat dan memulai pendaftaran, kunjungi website PMB resmi UNANDA.")
-            response_text = "\n".join(response_parts)
-
-
-    # --- Handler Tanya Pembelajaran ---
-    elif intent == "tanya_pembelajaran_prodi":
-        if not LEARNING_CONTENT:
-            response_text = f"Maaf {sapaan_untuk_user}, informasi materi pembelajaran prodi tidak dapat dimuat saat ini."
-        else:
-            if detected_prodi:
-                prodi_info = LEARNING_CONTENT.get(detected_prodi)
-                # Cari deskripsi summary yang sudah disiapkan
-                prodi_summary = prodi_info.get("_prodi_summary") if prodi_info else None
-
-                if prodi_summary:
-                    response_text = (f"Secara garis besar, di **Prodi {detected_prodi}**, mahasiswa akan mempelajari berbagai hal terkait bidangnya. "
-                                     f"Berikut adalah ringkasan fokus pembelajarannya:\n\n{prodi_summary}\n\n"
-                                     "Tentu saja ini gambaran umum. Mata kuliah spesifik akan dipelajari per semester sesuai kurikulum. "
-                                     f"Anda bisa cek detail kurikulum di website prodi {detected_prodi} jika tersedia.")
-                else:
-                    # Fallback jika summary tidak ada, tapi data prodi ada
-                    response_text = (f"Maaf {sapaan_untuk_user}, ringkasan materi pembelajaran untuk **Prodi {detected_prodi}** belum tersedia secara spesifik di data saya. "
-                                     "Secara umum, prodi ini akan membahas topik-topik yang relevan dengan bidangnya. "
-                                     f"Anda bisa mencari silabus atau kurikulum di website resmi Prodi {detected_prodi} untuk detail mata kuliah.")
-            else: # Jika tidak ada prodi terdeteksi
-                prodi_options = [prodi for prodi in LEARNING_CONTENT if not prodi.startswith("_")] # Ambil nama prodi dari data
-                if prodi_options:
-                    response_text = f"{sapaan_untuk_user}Anda ingin mengetahui gambaran pembelajaran di program studi mana? Pilihan yang tersedia di data saya: **{', '.join(prodi_options)}**."
-                else:
-                     response_text = f"{sapaan_untuk_user}Maaf, informasi pembelajaran untuk program studi belum tersedia di data saya."
-
-    elif intent == "tanya_pembelajaran_lab":
-        if not LEARNING_CONTENT:
-             response_text = f"Maaf {sapaan_untuk_user}, informasi materi pembelajaran laboratorium tidak dapat dimuat saat ini."
-        # Jika user tidak menyebutkan nama lab spesifik
-        elif not detected_lab:
-            all_labs_with_desc = []
-            # Cek semua prodi dan lab di dalamnya yang punya deskripsi
-            for prodi, content in LEARNING_CONTENT.items():
-                 if isinstance(content, dict):
-                      all_labs_with_desc.extend([lab for lab in content if not lab.startswith("_") and content[lab]])
-
-            if all_labs_with_desc:
-                # Ambil beberapa contoh unik
-                contoh_lab = list(set(all_labs_with_desc))
-                contoh_display = random.sample(contoh_lab, min(len(contoh_lab), 5))
-                response_text = (f"{sapaan_untuk_user}Anda ingin tahu materi pembelajaran di laboratorium mana? "
-                                 "Mohon sebutkan nama laboratorium spesifiknya. "
-                                 f"Contohnya: 'apa yang dipelajari di {random.choice(contoh_display)}?'")
-            else:
-                response_text = (f"{sapaan_untuk_user}Anda ingin tahu materi pembelajaran di laboratorium mana? "
-                                 "Mohon sebutkan nama laboratorium spesifiknya.")
-        # Jika user menyebutkan nama lab
-        else:
-            possible_prodi_owners = []
-            lab_description = None
-            target_prodi_for_lab = None # Untuk menyimpan prodi tempat deskripsi ditemukan
-
-            # Cari deskripsi lab di semua prodi
-            for prodi, content in LEARNING_CONTENT.items():
-                 # Pastikan content adalah dictionary dan lab ada di dalamnya
-                if isinstance(content, dict) and detected_lab in content:
-                    desc = content.get(detected_lab)
-                    # Hanya catat jika ada deskripsi non-kosong
-                    if desc and isinstance(desc, str) and desc.strip():
-                        possible_prodi_owners.append(prodi)
-                        # Prioritaskan jika prodi dari NLU cocok DAN deskripsi ditemukan
-                        if detected_prodi and detected_prodi == prodi:
-                            lab_description = desc
-                            target_prodi_for_lab = prodi
-                            break # Ditemukan kecocokan terbaik
-
-                        # Jika belum ada kecocokan prodi NLU, simpan deskripsi pertama yang ditemukan
-                        elif not lab_description:
-                            lab_description = desc
-                            target_prodi_for_lab = prodi
-                            # Jangan break dulu, mungkin ada prodi NLU cocok nanti
-
-            # Buat respons berdasarkan hasil pencarian
-            if lab_description:
-                 # Jika lab ditemukan di beberapa prodi & user tidak spesifik prodi
-                 if len(possible_prodi_owners) > 1 and not detected_prodi:
-                     response_text = (f"Laboratorium **{detected_lab}** relevan untuk beberapa prodi "
-                                      f"(misalnya {', '.join(possible_prodi_owners)}).\n\n"
-                                      f"Secara umum, di lab ini fokus pembelajarannya adalah:\n{lab_description}\n\n"
-                                      f"Materi spesifik mungkin disesuaikan tergantung kebutuhan prodi.")
-                 # Jika lab ditemukan (unik atau sesuai NLU prodi)
-                 else:
-                     prodi_konteks = f"(Prodi {target_prodi_for_lab})" if target_prodi_for_lab else ""
-                     response_text = (f"Di laboratorium **{detected_lab}** {prodi_konteks}, "
-                                      f"fokus materi pembelajaran dan praktikumnya meliputi:\n\n{lab_description}")
-
-            # Jika lab terdeteksi tapi deskripsi tidak ditemukan di mana pun
-            else:
-                response_text = (f"Maaf {sapaan_untuk_user}, deskripsi detail mengenai apa yang dipelajari di laboratorium "
-                                 f"**{detected_lab}** belum tersedia di data saya. "
-                                 "Biasanya lab ini mendukung mata kuliah praktikum terkait.")
-
-    else:
-        # Intent dikenali oleh model (skor > threshold) tapi tidak ada handler spesifik di sini
-        if score >= CONFIDENCE_THRESHOLD: # Cek lagi threshold untuk memastikan
-             final_intent_category = "unhandled_valid_intent"
-             response_text = (f"Saya mengerti Anda bertanya tentang '{intent}' ({score*100:.1f}%). "
-                              f"Namun, saya belum memiliki informasi detail atau tindakan spesifik untuk topik tersebut saat ini. "
-                              "Mungkin Anda bisa bertanya tentang topik lain seperti biaya, pendaftaran, jadwal, atau prodi?")
-        # Jika intent tidak dikenali ATAU skor rendah (ini seharusnya sudah ditangani di /predict, tapi sbg fallback)
-        else:
-             final_intent_category = "fallback_low_confidence_or_unknown"
-             response_text = f"Maaf {sapaan_untuk_user}, saya masih belum yakin memahami maksud Anda (topik: {intent}, keyakinan: {score*100:.1f}%). Bisa coba tanyakan dengan kalimat yang berbeda atau lebih spesifik?"
-
-
-    # Kembalikan teks respons dan kategori intent final
-    return response_text, final_intent_category
-
+        print(f"ERROR saat NLU: '{text}'. Kesalahan: {e}")
+        traceback.print_exc()
+        # Return empty result but with the expected structure on error
+        return {"doc": None, "intent": None, "score": 0.0, "entities": {"PERSON": None, "PRODI": [], "LAB": []}, "all_intents": {}}
+
+# --- OOS Helper Function ---
+def check_out_of_scope(text_lower, domain_kws, oos_kws, min_len_no_domain=5):
+    """Cek apakah teks berada di luar cakupan domain berdasarkan keywords."""
+    # 1. Cek keyword OOS eksplisit
+    for keyword in oos_kws:
+        # Gunakan word boundary (\b) untuk mencocokkan kata utuh
+        if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
+            print(f"DEBUG OOS: Keyword eksplisit '{keyword}' ditemukan.")
+            return True, "explicit" # Pasti OOS
+
+    # 2. Cek keberadaan keyword domain
+    found_domain_keyword = False
+    for keyword in domain_kws:
+        if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
+            found_domain_keyword = True
+            break
+
+    # 3. Logika OOS berdasarkan ketiadaan keyword domain (untuk input yang lebih panjang)
+    # Abaikan input input yang sangat pendek (<=2 kata) tanpa keyword domain (mungkin salam generik non-islamic)
+    if not found_domain_keyword and len(text_lower.split()) > 2 and len(text_lower.split()) >= min_len_no_domain:
+         print(f"DEBUG OOS: Tidak ada keyword domain & panjang >= {min_len_no_domain}. Potensi OOS.")
+         # Dianggap OOS jika tidak ada keyword domain DAN input cukup panjang
+         return True, "potential_no_domain" # Mengaktifkan heuristic ini sedikit lebih agresif OOS
+         # return False, "potential_no_domain_ignored" # Saat ini diabaikan
+
+    # Jika ada keyword domain, pasti BUKAN OOS berdasarkan heuristic ini
+    if found_domain_keyword:
+        return False, "in_scope_domain_keyword_present"
+
+    # Jika tidak ada keyword domain TAPI inputnya pendek (<= min_len_no_domain atau <= 2 kata)
+    else: # (not found_domain_keyword and len(text_lower.split()) < min_len_no_domain) or (len(text_lower.split()) <= 2)
+        return False, "in_scope_short_or_generic"
 
 # --- Route Utama ---
-# (Tidak berubah)
 @app.route("/")
 def index():
-    """Menampilkan halaman utama chatbot."""
+    """Render halaman utama dan bersihkan state dialog."""
+    # Bersihkan state dialog dan nama pengguna saat halaman di-load/reload
+    if 'dialogue_state' in session:
+        session.pop('dialogue_state', None)
+        session.pop('clarification_options', None)
+        session.pop('original_ambiguous_nlu', None)
+        print("INFO: Dialogue state cleared on page load.")
+    if 'user_name' in session:
+         session.pop('user_name', None)
+         print("INFO: User name cleared on page load.")
+
     return render_template("index.html")
 
+
 # --- Route Prediksi Chat (Coordinator) ---
-# (Tidak berubah signifikan, pastikan sapaan konsisten jika perlu)
 @app.route("/predict", methods=["POST"])
 def predict():
-    """Menerima input teks, memproses NLU, dan mengembalikan jawaban."""
-    final_intent_category = "unknown_flow" # Kategori debug akhir
-    response_text = "Maaf, terjadi sedikit gangguan dalam memproses permintaan Anda." # Default response
-    debug_info = {} # Akan diisi nanti
-    start_time = time.time() # Ukur waktu proses
+    """Handle permintaan chat, proses NLU, state, OOS, dan panggil logic handler."""
+    start_time = time.time()
+    final_intent_category = "unknown_flow" # Default category
+    response_text = "Maaf, terjadi sedikit gangguan dalam memproses permintaan Anda. Silakan coba lagi." # Default error response
+    debug_info = {}
+
+    # Inisialisasi variabel yang mungkin digunakan di berbagai alur atau debug info
+    extracted_name_person_ner = None # <<<--- INI YANG DITAMBAHKAN UNTUK INISIALISASI
+    rule_extracted_name = None
+    name_source = "unknown"
+    user_name_to_save = None
+    response_generated_by_name_logic = False
+    nlu_result = {"doc": None, "intent": None, "score": 0.0, "entities": {"PERSON": None, "PRODI": [], "LAB": []}, "all_intents": {}} # Inisialisasi nlu_result
+
 
     try:
-        # Validasi input JSON
+        # --- Validasi Input ---
         if not request.is_json:
-            return jsonify({"error": "Request harus dalam format JSON", "debug_info": {}}), 400
-
+            return jsonify({"error": "Request JSON diperlukan", "debug_info": {}}), 400
         data = request.get_json()
         text = data.get("text")
-
         if not text or not isinstance(text, str) or not text.strip():
             return jsonify({"error": "Input 'text' tidak boleh kosong!", "debug_info": {"user_text": text}}), 400
 
-        # Sanitasi dasar input teks (opsional, tergantung kebutuhan)
         text = text.strip()
         if len(text) > 500: # Batasi panjang input
-             return jsonify({"error": "Input terlalu panjang (maks 500 karakter)", "debug_info": {"user_text": text[:50] + "..."}}), 400
+            return jsonify({"error": "Input terlalu panjang (maks 500 karakter)", "debug_info": {"user_text": text[:50] + "..."}}), 400
 
-        user_name_from_session = session.get('user_name')
-        safe_user_name = escape(user_name_from_session) if user_name_from_session else None
-        # Definisikan sapaan yang akan digunakan di blok ini
-        sapaan_session_basic = f"{safe_user_name}, " if safe_user_name else "" # Untuk tengah kalimat
-        sapaan_session_awal = f"{safe_user_name}" if safe_user_name else "Anda" # Untuk awal, bisa disesuaikan
-
-
-        # --- 1. Handle Special Cases (Salam Islami, dll.) ---
         text_lower_stripped = text.lower()
-        # Pola regex yang lebih robust untuk salam
-        salam_pattern = r"^\s*assalamu'?alaikum(\s*wr\.?\s*wb\.?)?\s*[\.!\?]?\s*$"
-        if re.match(salam_pattern, text_lower_stripped):
-            salam_responses = ["Wa'alaikumsalam!", "Wa'alaikumussalam.", "Wa'alaikumsalam warahmatullahi wabarakatuh."]
-            answer = random.choice(salam_responses)
-            if safe_user_name:
-                 answer += f" Ada yang bisa saya bantu, {safe_user_name}?"
+        user_name_from_session = session.get('user_name') # Ambil nama dari sesi (jika ada)
+
+        # === BAGIAN 1: Cek State Klarifikasi Intent ===
+        if session.get('dialogue_state') == 'awaiting_intent_clarification':
+            print("INFO: Handling response to intent clarification request.")
+            user_choice = text_lower_stripped
+            options_map = session.get('clarification_options', {})
+            original_nlu = session.get('original_ambiguous_nlu', None)
+            original_user_text = original_nlu.get('user_text', 'N/A') if original_nlu else 'N/A'
+
+            resolved_intent = None
+            # Cari intent berdasarkan pilihan user (1, 2, dst.)
+            # Periksa apakah pilihan user sesuai dengan nomor opsi yang diberikan
+            if user_choice in options_map:
+                 resolved_intent = options_map[user_choice]
+
+            if resolved_intent and original_nlu:
+                print(f"INFO: Intent disambiguated by user to: {resolved_intent}")
+                # Buat NLU result baru dengan intent yang sudah pasti
+                # Gunakan entitas dari NLU asli saat klarifikasi terjadi
+                entities_from_original_nlu = original_nlu.get("entities", {"PERSON": None, "PRODI": [], "LAB": []})
+
+                modified_nlu = {
+                    "doc": original_nlu.get("doc"), # Pertahankan doc asli jika ada
+                    "intent": resolved_intent,
+                    "score": 1.0, # Anggap skor 1.0 karena user memilih
+                    "entities": entities_from_original_nlu,
+                    "all_intents": {resolved_intent: 1.0}, # Hanya intent yang dipilih dengan skor 1.0
+                    "user_text": original_user_text # Simpan teks asli user
+                }
+
+                # Hapus state klarifikasi dari session
+                session.pop('dialogue_state', None)
+                session.pop('clarification_options', None)
+                session.pop('original_ambiguous_nlu', None)
+
+                # Panggil logic handler dengan NLU yang sudah dimodifikasi
+                try:
+                    response_text, final_intent_category = intent_logic.get_response_for_intent(
+                        modified_nlu, user_name_from_session, original_user_text, APP_CONFIG
+                    )
+                except Exception as logic_err:
+                     print(f"ERROR saat menjalankan intent logic post-clarification: {logic_err}")
+                     traceback.print_exc()
+                     safe_user_name_temp = escape(user_name_from_session) if user_name_from_session else None
+                     sapaan_temp = f"{safe_user_name_temp}, " if safe_user_name_temp else ""
+                     response_text = f"Maaf {sapaan_temp}terjadi kesalahan saat memproses permintaan Anda setelah klarifikasi."
+                     final_intent_category = "handler_error_post_clarification"
+
+                debug_info.update({
+                    "user_text": text, "original_ambiguous_text": original_user_text,
+                    "final_intent_category": final_intent_category, "resolved_intent": resolved_intent,
+                    "clarification_successful": True, "user_name_in_session": user_name_from_session,
+                    # Tambahkan entitas asli ke debug info klarifikasi
+                    "entities_from_original_nlu": entities_from_original_nlu,
+                })
             else:
-                 answer += " Ada yang bisa saya bantu?"
-            final_intent_category = "greeting_islamic_handled"
-            debug_info = {
-                "user_text": text,
-                "detected_intent": final_intent_category,
-                "intent_score": 1.0, # Skor 1.0 karena rule-based
-                "user_name_in_session": user_name_from_session,
-                "top_intent_raw": None,
-                "ner_person_model": None,
-                "rule_extracted_name": None,
-                "ner_prodi_rules": [],
-                "ner_lab_rules": [],
-            }
+                # Jika user tidak memilih opsi yang valid
+                print(f"WARNING: Failed to parse user clarification choice: '{user_choice}'. Options offered: {options_map}")
+                response_text = random.choice([
+                    "Maaf, pilihan Anda tidak dikenali. Mohon pilih nomor opsi yang tersedia (misal: '1' atau '2').",
+                    "Pilihan tidak valid. Silakan ketik nomor (1 atau 2) sesuai opsi yang Anda maksud.",
+                    "Saya belum mengerti. Pilihan Anda seharusnya berupa angka dari daftar yang saya berikan."
+                ])
+                final_intent_category = "clarification_failed_reprompt"
+                # Pertahankan state klarifikasi agar user bisa mencoba lagi
+                debug_info = {
+                    "user_text": text, "final_intent_category": final_intent_category,
+                    "clarification_successful": False, "user_name_in_session": user_name_from_session,
+                    "clarification_options_offered": options_map,
+                }
+
             end_time = time.time()
             debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
-            return jsonify({ "answer": answer, "debug_info": debug_info })
+            return jsonify({"answer": response_text, "debug_info": debug_info})
+        # === END BAGIAN 1 ===
 
-        # --- 2. Proses NLU ---
-        nlu_result = process_nlu(text) # Gunakan teks asli (NLU function akan handle lowercase)
-        top_intent = nlu_result['intent']
-        top_score = nlu_result['score']
-        entities = nlu_result['entities']
-        extracted_name_person_ner = entities.get("PERSON") # Hasil dari NER model
-        detected_prodi_list = entities.get("PRODI", [])
-        detected_lab_list = entities.get("LAB", [])
-
-        # --- 3. Handle Interaksi Nama ---
-        rule_extracted_name = None # Untuk debug jika nama diekstrak pakai rule
-
-        # Kondisi user kemungkinan sedang *memberikan* nama:
-        # 1. Intent 'provide_name' terdeteksi dengan confidence tinggi.
-        # 2. ATAU Inputnya pendek (<= 5 kata), NER mendeteksi nama, DAN belum ada nama di sesi.
-        is_short_input = len(text.split()) <= 5
-        likely_providing_name = (top_intent == "provide_name" and top_score >= CONFIDENCE_THRESHOLD) or \
-                                (is_short_input and extracted_name_person_ner is not None and not user_name_from_session and top_intent != 'goodbye_ft') # Jangan anggap "makasih pak budi" sbg pemberian nama
-
-        # --- Alur Logika Utama ---
-
-        # Kasus 1: Belum kenal nama & user TIDAK sedang memberi nama -> Minta nama
-        if not user_name_from_session and not likely_providing_name:
-            final_intent_category = "prompt_for_name"
-            # Sesuaikan prompt tergantung apakah user sudah bertanya sesuatu atau baru mulai
-            if top_intent and top_intent not in ["greeting_ft", "ask_bot_identity"] and top_score >= CONFIDENCE_THRESHOLD:
-                 prompt_options = [
-                     f"Tentu, saya coba bantu jawab. Tapi agar lebih akrab, boleh saya tahu nama Anda?",
-                     f"Oke, sebelum masuk ke detailnya, Anda ingin dipanggil siapa?",
-                     f"Siap! Untuk mempermudah komunikasi, boleh perkenalkan diri dulu?"
-                 ]
-            else: # Baru mulai atau hanya sapaan umum
-                 prompt_options = [
-                     "Halo! Selamat datang di chatbot FT UNANDA. Sebelum kita mulai, boleh saya tahu nama panggilan Anda?",
-                     "Hai! Supaya lebih enak ngobrolnya, Anda nyaman dipanggil siapa?",
-                     "Salam kenal! Saya chatbot FT UNANDA. Boleh tahu nama Anda?"
-                 ]
-            response_text = random.choice(prompt_options)
-
-        # Kasus 2: User kemungkinan MEMBERIKAN nama (baik sudah kenal atau belum) -> Proses nama
-        elif likely_providing_name:
-            user_name_to_save = None
-            name_source = "unknown" # Untuk debug
-
-            # Prioritas 1: Gunakan hasil NER jika ada
-            if extracted_name_person_ner:
-                # Coba bersihkan dari sapaan umum di depan/belakang jika ada
-                cleaned_name_ner = re.sub(r"^(nama|panggilan)\s+(saya|aku)\s+(adalah|yaitu)?\s*", "", extracted_name_person_ner, flags=re.IGNORECASE).strip(' .,?!')
-                cleaned_name_ner = re.sub(r"\s*terima kasih$", "", cleaned_name_ner, flags=re.IGNORECASE).strip(' .,?!')
-                if len(cleaned_name_ner) > 1 and len(cleaned_name_ner.split()) <= 5: # Validasi sederhana
-                    user_name_to_save = cleaned_name_ner
-                    name_source = "ner"
-
-            # Prioritas 2: Jika NER gagal ATAU intent provide_name kuat, coba rule-based
-            # Hanya jika belum dapat nama dari NER atau jika intent 'provide_name' sangat kuat
-            if not user_name_to_save or (top_intent == "provide_name" and top_score > 0.8):
-                # Pola untuk ekstraksi nama setelah kata kunci
-                name_patterns = [
-                    r"^(?:nama|panggilan)\s+(?:saya|aku)\s+(?:adalah|yaitu)?\s+(.+)", # nama saya adalah [nama]
-                    r"^(?:saya|aku)\s+(?:adalah|yaitu)?\s+(.+)",                   # saya adalah [nama]
-                    r"^panggil\s+(?:saya|aku)?\s+(.+)",                             # panggil saya [nama]
-                ]
-                potential_name_rule = None
-                for pattern in name_patterns:
-                     match = re.search(pattern, text, flags=re.IGNORECASE)
-                     if match:
-                         potential_name_rule = match.group(1).strip(' .,?!')
-                         break # Ambil yang pertama cocok
-
-                # Jika tidak cocok pola di atas, tapi input pendek dan intent kuat, anggap seluruh teks (setelah trigger) adalah nama
-                if not potential_name_rule and is_short_input and top_intent == "provide_name":
-                    potential_name_rule = re.sub(r"^(nama|panggilan|saya|aku|panggil)\s+", "", text, flags=re.IGNORECASE).strip(' .,?!')
-
-
-                # Validasi nama hasil rule
-                if potential_name_rule and len(potential_name_rule) > 1 and len(potential_name_rule.split()) <= 5 and potential_name_rule.lower() not in ["iya", "ya", "oke", "ok", "baik", "siap"]:
-                    # Jika nama dari NER sudah ada tapi beda, mungkin prioritaskan rule jika intent provide_name kuat
-                    if not user_name_to_save or (top_intent == "provide_name" and top_score >= CONFIDENCE_THRESHOLD):
-                         user_name_to_save = potential_name_rule
-                         name_source = "rule"
-                         rule_extracted_name = user_name_to_save # Simpan untuk debug
-
-            # Jika nama berhasil didapatkan (dari NER atau Rule) dan valid
-            if user_name_to_save:
-                 session['user_name'] = user_name_to_save.strip()
-                 safe_user_name = escape(session['user_name']) # Update nama yg aman dipakai
-                 # Update sapaan lagi setelah nama disimpan
-                 sapaan_session_basic = f"{safe_user_name}, "
-                 sapaan_session_awal = f"{safe_user_name}"
-
-                 final_intent_category = "provide_name_handled"
-                 response_text = random.choice([
-                     f"Baik {safe_user_name}, senang berkenalan! Nama Anda sudah saya ingat. Ada yang bisa saya bantu selanjutnya?",
-                     f"Oke {safe_user_name}, terima kasih informasinya! Sekarang, apa yang ingin Anda tanyakan tentang Fakultas Teknik?",
-                     f"Siap {safe_user_name}! Silakan ajukan pertanyaan Anda."
-                     ])
-                 debug_info["name_extraction_source"] = name_source
-            # Jika user sepertinya memberi nama TAPI gagal diekstrak
-            else:
-                final_intent_category = "provide_name_failed"
-                response_text = random.choice([
-                    "Hmm, sepertinya saya belum berhasil menangkap nama Anda dengan jelas. Bisa coba sebutkan nama panggilannya saja?",
-                    "Maaf, saya agak kesulitan mengenali namanya. Bisa diulangi?",
-                    "Oke, tapi nama yang saya tangkap sepertinya kurang pas. Bisa tolong sebutkan lagi nama Anda?"
-                    ])
-
-        # Kasus 3: Sudah kenal nama ATAU user tidak sedang memberi nama -> Proses intent utama
+        # === BAGIAN 2: Proses Input BARU (Tidak dalam state klarifikasi) ===
         else:
-           # Cek apakah intent terdeteksi dengan confidence cukup tinggi
-           if top_intent and top_score >= CONFIDENCE_THRESHOLD:
-               # Panggil helper utama untuk generate respons berdasarkan intent
-               response_text, final_intent_category = generate_intent_response(nlu_result, user_name_from_session, text)
-           # Jika intent tidak jelas (skor rendah) -> Fallback
-           else:
-               final_intent_category = "fallback_low_confidence"
-               # Berikan saran yang lebih kontekstual (gunakan sapaan yang sudah di-escape)
-               fallback_options = [
-                   (f"Maaf {sapaan_session_basic}saya kurang yakin memahami maksud Anda (topik: '{top_intent}'?, skor: {top_score:.2f}). "
-                    "Bisa coba tanyakan tentang:\n"
-                    "- Biaya kuliah (SPP/Praktikum)\n"
-                    "- Pendaftaran mahasiswa baru (PMB)\n"
-                    "- Informasi prodi atau laboratorium\n"
-                    "- Jadwal kuliah (khususnya TI)\n" # Tambahkan hint jadwal TI
-                    "- Panduan KRS atau cara pembayaran"),
-                   f"Hmm {sapaan_session_basic}sepertinya saya belum mengerti sepenuhnya. Mungkin bisa dijelaskan dengan kata-kata lain?",
-                   f"Maaf {sapaan_session_basic}bisa diperjelas lagi pertanyaannya mengenai Fakultas Teknik?",
-               ]
-               # Jika ada intent terdeteksi tapi skor rendah, gunakan fallback pertama
-               if top_intent:
-                    response_text = fallback_options[0]
-               else: # Jika tidak ada intent sama sekali (jarang terjadi jika model ada)
-                    response_text = random.choice(fallback_options[1:])
+            # --- 0. Cek Out-of-Scope Dulu ---
+            is_oos, oos_reason = check_out_of_scope(
+                text_lower_stripped, DOMAIN_KEYWORDS, OOS_KEYWORDS, MIN_LEN_FOR_NO_DOMAIN_OOS
+            )
 
-        # --- 5. Siapkan Debug Info & Kembalikan Respons ---
-        # (Tidak berubah)
-        debug_info = {
-            "user_text": text,
-            "final_intent_category": final_intent_category, # Kategori setelah semua logika
-            "top_intent_raw_model": top_intent, # Intent mentah dari model
-            "intent_score": round(top_score, 4),
-            "entities_ner_model": {"PERSON": extracted_name_person_ner}, # Hanya NER dari model
-            "entities_rules": { # Entitas dari PhraseMatcher
-                "PRODI": detected_prodi_list,
-                "LAB": detected_lab_list
-            },
-            "name_in_session_before": user_name_from_session, # Nama di sesi sebelum diproses
-            "name_in_session_after": session.get('user_name'), # Nama di sesi setelah diproses
-            "rule_extracted_name": rule_extracted_name, # Nama jika diekstrak rule
-            "name_extraction_source": debug_info.get("name_extraction_source", None), # Sumber ekstraksi nama
-            "confidence_threshold": CONFIDENCE_THRESHOLD,
-            "likely_providing_name_flag": likely_providing_name,
-        }
-        end_time = time.time()
-        debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+            if is_oos: # Trigger OOS if heuristic returns True for any reason
+                print(f"INFO: Input terdeteksi OOS. Reason: {oos_reason}. Text: '{text}'")
+                final_intent_category = f"out_of_scope_heuristic_{oos_reason}"
+                safe_user_name_oos = escape(user_name_from_session) if user_name_from_session else None
+                sapaan_oos = f"Maaf {safe_user_name_oos}, " if safe_user_name_oos else "Maaf, "
+                oos_responses = [
+                    f"{sapaan_oos}saya adalah chatbot khusus untuk informasi Fakultas Teknik Universitas Andi Djemma Palopo. Topik pertanyaan Anda sepertinya di luar fokus utama saya.",
+                    f"{sapaan_oos}saya hanya bisa menjawab pertanyaan terkait akademik, biaya, pendaftaran, dan info umum Fakultas Teknik UNANDA.",
+                    f"{sapaan_oos}fokus saya adalah seputar Fakultas Teknik UNANDA. Ada hal lain yang bisa saya bantu terkait fakultas?"
+                ]
+                response_text = random.choice(oos_responses)
+                debug_info = {
+                    "user_text": text, "final_intent_category": final_intent_category,
+                    "oos_detection_reason": oos_reason, "user_name_in_session": user_name_from_session,
+                }
+                end_time = time.time()
+                debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+                return jsonify({"answer": response_text, "debug_info": debug_info})
+            # Jika is_oos False, lanjutkan proses NLU
 
-        # Return dalam format JSON
-        return jsonify({"answer": response_text, "debug_info": debug_info})
+            # --- 1. Handle Special Cases (Salam Islami, dll.) ---
+            # Contoh: Handle Salam Islami secara spesifik
+            salam_pattern = r"^\s*assalamu'?alaikum(\s*wr\.?\s*wb\.?)?\s*[\.!\?]?\s*$"
+            if re.match(salam_pattern, text_lower_stripped):
+                salam_responses = ["Wa'alaikumsalam!", "Wa'alaikumussalam.", "Wa'alaikumsalam warahmatullahi wabarakatuh."]
+                answer = random.choice(salam_responses)
+                safe_name_temp = escape(user_name_from_session) if user_name_from_session else None
+                answer += f" Ada yang bisa saya bantu, {safe_name_temp}?" if safe_name_temp else " Ada yang bisa saya bantu?"
+                final_intent_category = "greeting_islamic_handled"
+                debug_info = {
+                    "user_text": text, "detected_intent": final_intent_category, "intent_score": 1.0,
+                    "user_name_in_session": user_name_from_session, "oos_detection_result": (is_oos, oos_reason)
+                }
+                end_time = time.time()
+                debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+                return jsonify({ "answer": answer, "debug_info": debug_info })
+            # Tambahkan handle special case lain jika perlu di sini
 
-    # --- Exception Handling ---
-    # (Tidak berubah)
+            # --- 2. Proses NLU ---
+            if not nlp: # Jika model NLP gagal load, beri pesan error
+                 print("ERROR: Model NLP tidak tersedia, tidak dapat memproses NLU.")
+                 response_text = "Maaf, sistem NLU sedang tidak aktif. Tidak dapat memproses permintaan Anda saat ini."
+                 final_intent_category = "nlu_system_unavailable"
+                 debug_info = { "user_text": text, "final_intent_category": final_intent_category }
+                 end_time = time.time(); debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+                 return jsonify({ "answer": response_text, "debug_info": debug_info })
+
+            nlu_result = process_nlu(text) # NLU result is guaranteed to be a dictionary
+            all_intents_scores = nlu_result.get("all_intents", {})
+            # Ensure top intent and score are based on the actual result
+            top_intent = nlu_result.get('intent')
+            top_score = nlu_result.get('score', 0.0)
+
+
+            # --- 3. Cek Ambiguitas Intent ---
+            needs_disambiguation = False
+            ambiguous_intents = []
+            if ENABLE_INTENT_DISAMBIGUATION and len(all_intents_scores) > 1:
+                # Sort intents by score in descending order
+                sorted_intents = sorted(all_intents_scores.items(), key=lambda item: item[1], reverse=True)
+
+                # Check if there are at least two intents to compare
+                if len(sorted_intents) >= 2:
+                     top_intent_name, top_score_check = sorted_intents[0]
+                     second_intent_name, second_score = sorted_intents[1]
+
+                     # Kondisi ambiguitas: Keduanya di atas threshold & selisihnya kecil
+                     if (top_score_check >= CONFIDENCE_THRESHOLD and
+                         second_score >= CONFIDENCE_THRESHOLD and
+                         (top_score_check - second_score) < DISAMBIGUATION_MARGIN):
+                         needs_disambiguation = True
+                         # Ambil hingga top N intents yang skornya dekat dengan top intent, max 3
+                         ambiguous_intents.append((top_intent_name, top_score_check))
+                         for i in range(1, len(sorted_intents)):
+                              intent_name, score = sorted_intents[i]
+                              if (top_score_check - score) < DISAMBIGUATION_MARGIN and len(ambiguous_intents) < 3:
+                                   ambiguous_intents.append((intent_name, score))
+                              else:
+                                   break # Stop if score difference is too large or max options reached
+
+            if needs_disambiguation and len(ambiguous_intents) >= 2: # Only disambiguate if at least 2 options identified
+                 print(f"INFO: Intent ambiguity detected for '{text}'. Candidates: {ambiguous_intents}")
+                 options = {}
+                 response_lines = ["Hmm, saya perlu sedikit klarifikasi. Apakah yang Anda maksud:"]
+                 option_num = 1
+                 valid_options_count = 0
+
+                 for intent_name, score in ambiguous_intents:
+                      # Ambil deskripsi intent, atau buat default jika tidak ada
+                      description = INTENT_DESCRIPTIONS.get(intent_name, intent_name.replace("_", " ").capitalize())
+                      # Pastikan intent yang ditawarkan adalah intent yang ingin kita handle
+                      if description and intent_name in INTENT_DESCRIPTIONS: # Hanya tawarkan jika ada deskripsi
+                           response_lines.append(f"{option_num}. {description}?")
+                           options[str(option_num)] = intent_name # Simpan mapping nomor ke intent
+                           option_num += 1
+                           valid_options_count += 1
+                      # Tidak perlu break, ambil semua opsi yang relevan hingga max 3 sudah dibatasi di atas
+
+                 # Hanya trigger klarifikasi jika ada minimal 2 opsi valid
+                 if valid_options_count >= 2:
+                      response_text = "\n".join(response_lines)
+                      final_intent_category = "intent_disambiguation_prompt"
+
+                      # Simpan state ke session
+                      session['dialogue_state'] = 'awaiting_intent_clarification'
+                      session['clarification_options'] = options
+                      nlu_result['user_text'] = text # Tambahkan teks asli user ke NLU result yang disimpan
+                      # Simpan NLU result asli (termasuk entities dan doc)
+                      session['original_ambiguous_nlu'] = nlu_result
+
+                      debug_info = {
+                          "user_text": text, "final_intent_category": final_intent_category,
+                          "detected_ambiguity": True, "ambiguous_intents_offered": ambiguous_intents,
+                          "clarification_options_map": options, "user_name_in_session": user_name_from_session,
+                          "oos_detection_result": (is_oos, oos_reason),
+                          "confidence_threshold": CONFIDENCE_THRESHOLD,
+                          "disambiguation_margin": DISAMBIGUATION_MARGIN,
+                          "all_intent_scores_raw": {k: round(v, 4) for k, v in all_intents_scores.items()},
+                      }
+                      end_time = time.time()
+                      debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+                      return jsonify({"answer": response_text, "debug_info": debug_info})
+                 else:
+                      # Jika karena suatu hal tidak bisa membuat 2 opsi valid (misal deskripsi hilang)
+                      print(f"WARNING: Ambiguity detected but not enough valid descriptions ({valid_options_count} out of {len(ambiguous_intents)}). Proceeding with top intent.")
+                      needs_disambiguation = False # Batalkan klarifikasi, lanjutkan dengan intent teratas
+                      # top_intent and top_score are already set from nlu_result at the beginning of Bagian 2
+
+            # --- 4. Jika TIDAK Ambigu (atau klarifikasi dibatalkan) ---
+            # top_intent dan top_score sudah diambil dari nlu_result
+            entities = nlu_result.get('entities', {})
+            # Assign value after process_nlu has successfully run
+            extracted_name_person_ner = entities.get("PERSON") # <<<--- variabel ini sudah diinisialisasi di atas
+            detected_prodi_list = entities.get("PRODI", [])
+            detected_lab_list = entities.get("LAB", [])
+            # Ambil entitas pertama yang terdeteksi jika ada
+            detected_prodi = detected_prodi_list[0] if detected_prodi_list else None
+            detected_lab = detected_lab_list[0] if detected_lab_list else None
+
+
+            # Jika intent tidak terdeteksi sama sekali atau skor terlalu rendah (dan bukan OOS explicit)
+            # Cek juga jika hanya 'neutral' yang terdeteksi dengan skor rendah
+            is_low_confidence = not top_intent or top_score < CONFIDENCE_THRESHOLD
+            # Memberi sedikit kelonggaran pada intent 'neutral' agar tidak selalu dianggap low confidence
+            is_only_neutral_low_conf = (top_intent == "neutral" and top_score < CONFIDENCE_THRESHOLD + 0.15 and len(all_intents_scores) <= 1)
+
+
+            if is_low_confidence or is_only_neutral_low_conf:
+                 print(f"INFO: Intent low confidence or not detected for '{text}'. Top Intent: {top_intent}, Score: {top_score}")
+                 # Berikan respons fallback generik
+                 fallback_responses = [
+                     "Maaf, saya kurang mengerti maksud pertanyaan Anda. Bisa coba gunakan kalimat lain?",
+                     "Hmm, saya belum bisa memahami pertanyaan itu. Mungkin bisa diperjelas?",
+                     "Maaf, bisa coba tanyakan dengan cara berbeda? Saya masih belajar.",
+                     "Saya di sini untuk membantu seputar Fakultas Teknik UNANDA. Ada pertanyaan lain?"
+                 ]
+                 safe_user_fallback = escape(user_name_from_session) if user_name_from_session else None
+                 if safe_user_fallback:
+                      fallback_responses = [f"Maaf {safe_user_fallback}, saya kurang mengerti...", f"Hmm {safe_user_fallback}, bisa diperjelas?"] + fallback_responses
+
+                 response_text = random.choice(fallback_responses)
+                 final_intent_category = "fallback_low_confidence"
+                 debug_info = {
+                     "user_text": text, "final_intent_category": final_intent_category,
+                     "top_intent_raw_model": top_intent, "intent_score": round(top_score, 4),
+                     "all_intent_scores": {k: round(v, 4) for k, v in all_intents_scores.items()},
+                     "entities_ner_model": {"PERSON": extracted_name_person_ner}, # variabel sudah diinisialisasi
+                     "entities_rules": {"PRODI": detected_prodi_list, "LAB": detected_lab_list},
+                     "user_name_in_session": user_name_from_session,
+                     "oos_detection_result": (is_oos, oos_reason),
+                     "confidence_threshold": CONFIDENCE_THRESHOLD,
+                 }
+                 end_time = time.time()
+                 debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+                 return jsonify({"answer": response_text, "debug_info": debug_info})
+
+
+            # --- 5. Handle Interaksi Nama ---
+            # Inisialisasi variabel terkait nama (sudah diinisialisasi di awal fungsi)
+            # rule_extracted_name = None
+            # name_source = "unknown"
+            # user_name_to_save = None
+            # response_generated_by_name_logic = False
+
+            is_short_input = len(text.split()) <= 5 # Cek apakah input pendek
+            # Kondisi user kemungkinan memberikan nama:
+            # 1. Intent 'provide_name' terdeteksi dengan skor cukup
+            # 2. ATAU input pendek, ada entitas PERSON dari NER, belum ada nama di sesi, DAN bukan intent 'goodbye'
+            # Tambahkan kondisi jika teks input mengandung frasa "nama saya" dll.
+            contains_name_phrase = bool(re.search(r'\b(?:nama|panggilan)\s+(?:saya|aku|ku)\b|\bpanggil(?:\s+(?:saya|aku|ku))?\b', text_lower_stripped))
+            likely_providing_name = (top_intent == "provide_name" and top_score >= CONFIDENCE_THRESHOLD) or \
+                                    (is_short_input and extracted_name_person_ner is not None and not user_name_from_session and top_intent != 'goodbye_ft') or \
+                                    (extracted_name_person_ner is not None and contains_name_phrase and not user_name_from_session)
+
+
+            # --- 6. Alur Logika Utama (Nama & Intent Handler) ---
+
+            # Kasus 1: Belum ada nama di sesi DAN user tidak sedang memberikan nama -> Minta Nama (jika intent relevan & bukan sekadar salam)
+            if not user_name_from_session and not likely_providing_name:
+                # Hanya minta nama jika intent utama cukup jelas (bukan salam generik/tanya identitas bot/thankyou/goodbye/neutral)
+                ask_for_name = False
+                if top_intent and top_intent not in ["greeting_ft", "ask_bot_identity", "thankyou_ft", "goodbye_ft", "neutral"] and top_score >= CONFIDENCE_THRESHOLD:
+                    ask_for_name = True
+
+                if ask_for_name:
+                    final_intent_category = "prompt_for_name"
+                    prompt_options = [
+                        f"Tentu, saya coba bantu jawab. Tapi agar lebih akrab, boleh saya tahu nama Anda? (Contoh: 'nama saya Budi')",
+                        f"Oke, sebelum masuk ke detailnya, Anda ingin dipanggil siapa? (Contoh: 'nama aku Citra')",
+                        f"Siap! Untuk mempermudah komunikasi, boleh perkenalkan diri dulu? (Contoh: 'nama ku Doni' atau 'panggil saja Eka')"
+                    ]
+                    response_text = random.choice(prompt_options)
+                    response_generated_by_name_logic = True
+                # else: Jika tidak minta nama, lanjut ke intent handler (Kasus 3)
+
+            # Kasus 2: User kemungkinan memberikan nama -> Proses Nama
+            elif likely_providing_name:
+                print(f"DEBUG: Likely providing name detected for input: '{text}'")
+                # Prioritaskan nama dari NER jika ada
+                if extracted_name_person_ner:
+                    user_name_to_save = extracted_name_person_ner
+                    name_source = "ner"
+                    print(f"DEBUG: Nama '{user_name_to_save}' valid dari NER.")
+
+                # Jika NER tidak ada ATAU intent provide_name sangat kuat, coba rules regex
+                # Rules regex ini hanya dijalankan jika nama belum berhasil didapat dari NER
+                if not user_name_to_save:
+                    print(f"DEBUG: Nama dari NER tidak ada. Mencoba ekstraksi nama dengan rules...")
+                    # Pola regex dari yang paling spesifik ke paling umum
+                    # Menangkap grup nama setelah frasa pengantar
+                    extraction_patterns = [
+                        r"^(?:nama|panggilan)\s+(?:saya|aku|ku)\s+(?:adalah|yaitu)\s+([\w\s'-]+)", # nama saya adalah Budi
+                        r"^(?:nama|panggilan)\s+(?:saya|aku|ku)\s+([\w\s'-]+)",             # nama saya Budi
+                        r"^(?:saya|aku|ku)\s+(?:adalah|yaitu)\s+([\w\s'-]+)",             # saya adalah Budi (kurang reliable)
+                        r"^panggil(?:\s+(?:saya|aku|ku))?\s+([\w\s'-]+)",                   # panggil saya Budi / panggil Budi
+                        r"^(?:namaku|nama ku|panggilanku|panggilan ku)\s+([\w\s'-]+)",    # namaku Budi
+                        r"^(?:nama|panggilan)\s+([\w\s'-]+)",                            # nama Budi (agak ambigu)
+                        # Pola tangkap semua di akhir, hanya jika input sangat pendek
+                    ]
+                    potential_name_rule = None
+                    pattern_that_matched = "None"
+
+                    # Coba pola yang lebih spesifik dulu
+                    for pattern in extraction_patterns:
+                         match = re.search(pattern, text, flags=re.IGNORECASE)
+                         if match and match.lastindex is not None and match.lastindex > 0:
+                                extracted_part = match.group(match.lastindex).strip(' .,?!')
+                                print(f"DEBUG: Pola Regex '{pattern}' cocok. Ekstraksi: '{extracted_part}'")
+                                # Validasi hasil ekstraksi (panjang, bukan kata umum, tidak mengandung kata ganti)
+                                if extracted_part and 1 < len(extracted_part) <= 30 and len(extracted_part.split()) <= 5 and \
+                                   extracted_part.lower() not in ["iya", "ya", "oke", "ok", "baik", "siap", "bisa", "terima kasih", "thank you"]:
+                                     # Pastikan tidak mengandung kata ganti di dalamnya
+                                     if not any(pronoun in f" {extracted_part.lower()} " for pronoun in [" saya ", " aku ", " ku "]):
+                                         potential_name_rule = extracted_part
+                                         pattern_that_matched = pattern
+                                         break # Berhenti jika menemukan kecocokan valid dari pola spesifik
+
+                    # Jika pola spesifik tidak cocok dan input pendek, coba pola tangkap semua
+                    # Gunakan threshold panjang yang sangat rendah untuk catch-all ini
+                    if not potential_name_rule and is_short_input and len(text.split()) >= 1 and len(text) > 1:
+                        short_input_name_candidate = text.strip(' .,?!')
+                        # Validasi catch-all: sangat pendek, bukan kata umum/salam, tidak mengandung kata ganti
+                        if 1 < len(short_input_name_candidate) <= 15 and len(short_input_name_candidate.split()) <= 2 and \
+                            short_input_name_candidate.lower() not in ["iya", "ya", "oke", "ok", "baik", "siap", "bisa", "halo", "hai", "permisi", "admin", "bot", "chatbot", "makasih", "terima kasih", "thank you"]:
+                             if not any(pronoun in f" {short_input_name_candidate.lower()} " for pronoun in [" saya ", " aku ", " ku "]):
+                                potential_name_rule = short_input_name_candidate
+                                pattern_that_matched = "short_input_catch_all"
+                                print(f"DEBUG: Pola short input catch-all cocok. Ekstraksi: '{potential_name_rule}'")
+
+
+                    # Jika nama dari NER tidak ada, gunakan hasil dari rules jika valid
+                    if potential_name_rule: # Jika potential_name_rule berhasil mendapatkan nama
+                         user_name_to_save = potential_name_rule
+                         name_source = f"rule_{pattern_that_matched}"
+                         rule_extracted_name = user_name_to_save # Simpan juga nama hasil rule ke variabel terpisah
+                         print(f"INFO: Nama '{user_name_to_save}' disimpan dari rule (pola: {pattern_that_matched}).")
+                    else:
+                         print("DEBUG: Tidak ada nama valid yang bisa diekstrak dari rules.")
+
+                # Setelah mencoba NER dan Rules, cek apakah nama berhasil didapatkan
+                if user_name_to_save:
+                    session['user_name'] = user_name_to_save.strip().title() # Simpan ke sesi dengan kapitalisasi
+                    safe_user_name = escape(session['user_name'])
+                    final_intent_category = "provide_name_handled"
+                    success_responses = [
+                        f"Baik {safe_user_name}, senang berkenalan! Nama Anda sudah saya ingat. Anda bisa bertanya tentang:\n- Biaya kuliah (Contoh: 'berapa spp informatika?')\n- Jadwal (Contoh: 'jadwal ti hari senin')\n- Info prodi (Contoh: 'info prodi tambang')\nAtau topik lainnya seputar Fakultas Teknik?",
+                        f"Oke {safe_user_name}, terima kasih informasinya! Sekarang, apa yang ingin Anda tanyakan tentang Fakultas Teknik? Misalnya:\n- 'Info pendaftaran mahasiswa baru'\n- 'Cara bayar spp'\n- 'Fasilitas lab sipil'",
+                        f"Siap {safe_user_name}! Silakan ajukan pertanyaan Anda mengenai Fakultas Teknik. Anda bisa tanya soal:\n- Biaya praktikum (Contoh: 'berapa biaya praktikum basis data?')\n- Kontak TU\n- Jadwal mata kuliah tertentu (Contoh: 'jadwal kalkulus')"
+                    ]
+                    response_text = random.choice(success_responses)
+                    debug_info["name_extraction_source"] = name_source
+                    debug_info["extracted_name_candidates"] = {"ner": extracted_name_person_ner, "rule": rule_extracted_name} # rule_extracted_name mungkin None
+                else:
+                    # Jika nama tidak berhasil diekstrak sama sekali
+                    final_intent_category = "provide_name_failed"
+                    failure_responses = [
+                        "Hmm, sepertinya saya belum berhasil menangkap nama Anda dengan jelas. Bisa coba sebutkan nama panggilannya saja? (Contoh: 'panggil saja Budi')",
+                        "Maaf, saya agak kesulitan mengenali namanya. Bisa diulangi? (Contoh: 'nama saya Citra')",
+                        "Oke, tapi nama yang saya tangkap sepertinya kurang pas. Bisa tolong sebutkan lagi nama Anda? (Contoh: 'nama ku Doni')"
+                    ]
+                    response_text = random.choice(failure_responses)
+                    debug_info["name_extraction_source"] = "failed"
+                    debug_info["extracted_name_candidates"] = {"ner": extracted_name_person_ner, "rule": rule_extracted_name} # rule_extracted_name mungkin None
+
+                response_generated_by_name_logic = True
+            # Akhir dari blok 'likely_providing_name'
+
+            # Kasus 3: Tidak minta nama DAN tidak proses nama -> Panggil Intent Logic Handler Utama
+            if not response_generated_by_name_logic:
+                try:
+                    print(f"INFO: Calling intent logic handler for intent '{top_intent}' with score {top_score:.4f}")
+                    # Pass the extracted entities to the logic handler
+                    # Ensure the latest extracted name is in nlu_result for the handler
+                    nlu_result['entities']['PERSON'] = extracted_name_person_ner
+
+                    response_text, final_intent_category = intent_logic.get_response_for_intent(
+                        nlu_result, user_name_from_session, text, APP_CONFIG
+                    )
+                except Exception as logic_err:
+                     print(f"ERROR saat menjalankan intent logic utama: {logic_err}")
+                     traceback.print_exc()
+                     safe_user_name_temp = escape(user_name_from_session) if user_name_from_session else None
+                     sapaan_temp = f"{safe_user_name_temp}, " if safe_user_name_temp else ""
+                     response_text = f"Maaf {sapaan_temp}terjadi kesalahan saat memproses permintaan Anda tentang topik tersebut."
+                     final_intent_category = "handler_error_main"
+
+            # --- 7. Siapkan Debug Info Final & Kembalikan Respons ---
+            # Ambil nama terbaru dari sesi setelah logic handler berjalan (jika nama baru disimpan)
+            user_name_after_logic = session.get('user_name')
+
+            # Rekonstruksi debug_info untuk mencakup semua skenario
+            # Mulai dengan debug_info yang mungkin sudah diisi di Bagian 1 atau 2 (saat low confidence/OOS/name handling)
+            # Jika belum ada, inisialisasi ulang
+            if not debug_info:
+                 debug_info = {"user_text": text} # Minimal user text
+
+            debug_info.update({
+                "final_intent_category": final_intent_category,
+                "top_intent_raw_model": nlu_result.get('intent'), # Gunakan nlu_result yang didapat
+                "intent_score": round(nlu_result.get('score', 0.0), 4),
+                "all_intent_scores": {k: round(v, 4) for k, v in nlu_result.get('all_intents', {}).items()},
+                # <<<--- PERBAIKAN TYPO DI SINI --->>>
+                "entities_ner_model": {"PERSON": extract_model_person_name(nlu_result.get('doc')) if nlu_result.get('doc') else None}, # Re-extract safely using correct function name
+                # <<<--- AKHIR PERBAIKAN --->>>
+                "entities_rules": {"PRODI": nlu_result.get('entities', {}).get('PRODI', []), "LAB": nlu_result.get('entities', {}).get('LAB', [])}, # Ambil dari nlu_result
+                "name_in_session_before_logic": user_name_from_session,
+                "name_in_session_after_logic": user_name_after_logic,
+                "rule_extracted_name_candidate": rule_extracted_name, # Variabel dari Bagian 2
+                "name_saved_source": debug_info.get("name_extraction_source", "not_name_intent_flow"), # Ambil jika sudah diset, default jika tidak
+                "confidence_threshold": CONFIDENCE_THRESHOLD,
+                "likely_providing_name_flag": likely_providing_name, # Variabel dari Bagian 2
+                "oos_detection_result": (is_oos, oos_reason), # Variabel dari Bagian 2
+                "intent_disambiguation_triggered": needs_disambiguation, # Variabel dari Bagian 2
+            })
+
+            end_time = time.time()
+            debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+
+            return jsonify({"answer": response_text, "debug_info": debug_info})
+        # === END BAGIAN 2 ===
+
+    # --- Exception Handling Global ---
     except Exception as e:
-        # Tangkap error tak terduga selama pemrosesan
-        print(f"FATAL ERROR in /predict route: {e}")
-        traceback.print_exc() # Cetak traceback lengkap ke log server
+        print(f"FATAL ERROR in /predict endpoint: {e}")
+        traceback.print_exc()
+        # Selalu coba bersihkan state dialog dan nama pengguna jika terjadi error tak terduga
+        if 'dialogue_state' in session:
+             session.pop('dialogue_state', None)
+             session.pop('clarification_options', None)
+             session.pop('original_ambiguous_nlu', None)
+             print("ERROR: Dialogue state cleared due to unhandled exception.")
+        if 'user_name' in session:
+             # session.pop('user_name', None) # Jangan hapus nama di sesi saat error fatal, agar user tidak perlu memperkenalkan diri lagi
+             print("INFO: User name preserved in session despite unhandled exception.")
 
-        # Berikan pesan error umum yang aman ke pengguna
+
         error_message = "Maaf, terjadi kendala teknis di sistem saya. Silakan coba beberapa saat lagi."
-        # Coba tambahkan nama pengguna ke pesan error jika ada di sesi (dengan aman)
+        user_name_on_error = "N/A"
+        error_text_on_error = "N/A"
         try:
-            user_name_in_session_on_error = session.get('user_name')
-            if user_name_in_session_on_error:
-                 error_message = f"Maaf {escape(user_name_in_session_on_error)}, terjadi kendala teknis di sistem saya. Silakan coba beberapa saat lagi."
-        except Exception as session_e:
-             print(f"Warning: Gagal mengakses session saat menangani error utama: {session_e}")
-             # Abaikan jika error saat akses sesi dalam blok error handling
+            # Coba dapatkan nama dari sesi sebelum dihapus (jika sempat)
+            user_name_on_error = escape(session.get('user_name', 'N/A'))
+            if user_name_on_error != "N/A":
+                 error_message = f"Maaf {user_name_on_error}, terjadi kendala teknis di sistem saya. Silakan coba beberapa saat lagi."
+            # Coba dapatkan teks input saat error terjadi
+            if 'data' in locals() and isinstance(data, dict):
+                 error_text_on_error = data.get("text", "N/A")
+        except Exception as inner_e:
+             print(f"Error during exception handling itself: {inner_e}")
 
-        # Siapkan debug info minimal untuk error
         error_debug_info = {
-            "error_message": str(e),
-            "user_text_on_error": data.get("text") if 'data' in locals() else "Input not parsed",
+            "error_type": type(e).__name__,
+            "error_message_detail": str(e),
+            "user_text_on_error": error_text_on_error,
             "final_intent_category": "internal_server_error",
-            "user_name_in_session_on_error": user_name_in_session_on_error if 'user_name_in_session_on_error' in locals() else "N/A",
+            "user_name_in_session_on_error": user_name_on_error,
+            "traceback": traceback.format_exc() # Sertakan traceback lengkap di debug info
         }
-        end_time = time.time()
-        error_debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
+        # Tambahkan waktu proses jika memungkinkan
+        if 'start_time' in locals():
+            end_time = time.time()
+            error_debug_info["processing_time_ms"] = round((end_time - start_time) * 1000)
 
-
-        # Kembalikan response error 500
         return jsonify({
             "answer": error_message,
             "error": "Internal Server Error",
@@ -1288,93 +870,112 @@ def predict():
         }), 500
 
 # --- Route Lupa Nama ---
-# (Tidak berubah)
 @app.route("/forget_name", methods=["POST"])
 def forget_name():
-    """Menghapus nama pengguna dari sesi."""
+    """Hapus nama pengguna dari sesi dan bersihkan state dialog."""
+    # Bersihkan state dialog apapun saat lupa nama
+    if 'dialogue_state' in session:
+        session.pop('dialogue_state', None)
+        session.pop('clarification_options', None)
+        session.pop('original_ambiguous_nlu', None)
+        print("INFO: Dialogue state cleared on forget_name request.")
+
     user_name = session.get('user_name')
     if user_name:
         safe_removed_name = escape(user_name)
-        session.pop('user_name', None) # Hapus nama dari session
-        # Periksa apakah berhasil dihapus
+        session.pop('user_name', None)
+        # Verifikasi bahwa nama benar-benar hilang dari sesi
         if 'user_name' not in session:
+            print(f"INFO: User name '{safe_removed_name}' removed from session.")
             return jsonify({
                 "status": "success",
                 "message": f"Baik {safe_removed_name}, nama Anda sudah tidak saya simpan lagi. Kita mulai dari awal ya."
             })
         else:
-             # Kasus aneh jika pop gagal (jarang terjadi)
-             print("WARNING: Session pop 'user_name' tidak berhasil.")
-             return jsonify({
+            # Kasus aneh jika pop gagal
+            print("WARNING: Session pop 'user_name' failed unexpectedly.")
+            return jsonify({
                 "status": "error",
                 "message": "Maaf, terjadi sedikit masalah saat mencoba melupakan nama Anda."
             }), 500
     else:
+        # Jika memang belum ada nama di sesi
+        print("INFO: /forget_name called but no user_name was in session.")
         return jsonify({
             "status": "no_name",
             "message": "Tidak masalah, saya memang belum menyimpan nama Anda sebelumnya."
         })
 
+
 # --- Jalankan Server ---
-# (Tambahkan jadwal_ti.json ke status data)
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("      CHATBOT FAKULTAS TEKNIK SERVER (UNANDA)")
+    print("      CHATBOT FAKULTAS TEKNIK SERVER (UNANDA) - Cleaned Version")
     print("="*60)
-    print(f"[*] Base Directory : '{BASE_DIR}'")
-    print(f"[*] Model Dimuat dari: '{MODEL_DIR}'")
-    print(f"[*] Folder Data    : '{DATA_DIR}'")
-    print(f"[*] Conf. Threshold: {CONFIDENCE_THRESHOLD}")
-    print(f"[*] Mode Debug Flask: {app.debug}")
+    print(f"[*] Base Directory      : '{BASE_DIR}'")
+    print(f"[*] Model Dimuat dari   : '{MODEL_DIR}'")
+    print(f"[*] Folder Data         : '{DATA_DIR}'")
+    print(f"[*] Logic Handler File  : intent_logic.py")
+    print(f"[*] Conf. Threshold     : {CONFIDENCE_THRESHOLD}")
+    print(f"[*] OOS Keywords        : Loaded ({len(DOMAIN_KEYWORDS)} domain, {len(OOS_KEYWORDS)} explicit OOS)")
+    print(f"[*] Intent Disambiguation: {'ENABLED' if ENABLE_INTENT_DISAMBIGUATION else 'DISABLED'} (Margin: {DISAMBIGUATION_MARGIN})")
+    print(f"[*] Mode Debug Flask    : {app.debug}")
     secret_key_status = "Default (TIDAK AMAN!)" if 'ganti-ini-dengan-kunci-rahasia' in app.secret_key else "Custom/Env Var (Lebih Aman)"
-    print(f"[*] Status Secret Key: {secret_key_status}")
-    if 'ganti-ini-dengan-kunci-rahasia' in app.secret_key:
-        print("    >> PERINGATAN: Gunakan kunci rahasia yang kuat dan unik untuk production!")
-        print("    >> Set environment variable 'FLASK_SECRET_KEY'.")
+    print(f"[*] Status Secret Key   : {secret_key_status}")
 
-    # Cek Ketersediaan Data Penting
-    print("\n--- Status Data Eksternal ---")
-    data_files = {
-        'ft_fees.json': bool(FT_FEES),
-        'pmb_info.json': bool(PMB_INFO),
-        'learning_content.json': bool(LEARNING_CONTENT),
-        'spp_data.json': bool(SPP_DATA),
-        'terms.json': bool(TERMS_DATA),
-        'jadwal_ti.json': bool(JADWAL_TI_DATA), # <<<--- TAMBAHKAN PENGECEKAN
-        'krs_guide.txt': "tidak ditemukan" not in KRS_SEVIMA_GUIDE,
-        'payment_guide.txt': "tidak ditemukan" not in PAYMENT_SEVIMA_TOKOPEDIA_GUIDE
-    }
-    for filename, loaded in data_files.items():
-        status = "OK" if loaded else "MISSING/ERROR"
-        print(f"[*] {filename.ljust(25)}: {status}")
-    if not all(data_files.values()):
-        print("    >> PERINGATAN: Beberapa file data penting tidak ditemukan atau gagal dimuat.")
-        print("    >> Fitur chatbot yang bergantung pada data tersebut mungkin tidak berfungsi.")
-
-    # Cek Ketersediaan Model & Matcher
     print("\n--- Status Model & Matcher ---")
     print(f"[*] Model spaCy ({os.path.basename(MODEL_DIR)}) : {'Loaded' if nlp else 'FAILED'}")
-    print(f"[*] PhraseMatcher            : {'Initialized' if matcher else ('Not Initialized' if nlp else 'Skipped (Model Failed)')}")
-    if matcher:
-        print(f"    - Pola Prodi    : {len([k for k in entity_details if k.startswith('PRODI_')])}")
-        print(f"    - Pola Lab      : {len([k for k in entity_details if k.startswith('LAB_')])}")
+    # Berikan status matcher berdasarkan nlp dan entity_details
+    matcher_status = 'Not Initialized'
+    if nlp and matcher and entity_details and (len(matcher) > 0 or len(entity_details) > 0): matcher_status = f'Initialized ({len(matcher)} patterns, {len(entity_details)} entity details)'
+    elif nlp and matcher: matcher_status = f'Initialized ({len(matcher)} patterns, BUT entity_details empty/invalid!)'
+    elif not nlp: matcher_status = 'Skipped (Model Failed)'
+    print(f"[*] PhraseMatcher         : {matcher_status}")
+    if nlp and matcher and entity_details and (len(matcher) > 0 or len(entity_details) > 0):
+        prodi_count = len([k for k in entity_details if k.startswith('PRODI_')])
+        lab_count = len([k for k in entity_details if k.startswith('LAB_')])
+        print(f"    - Pola Prodi: {prodi_count}, Pola Lab: {lab_count}")
+    elif nlp:
+         print("    - Tidak ada pola Prodi atau Lab yang berhasil ditambahkan.")
+
+
+    print("\n--- Status Data Eksternal (via APP_CONFIG) ---")
+    data_keys_to_check=['FT_FEES','PMB_INFO','LEARNING_CONTENT','SPP_DATA','TERMS_DATA','JADWAL_TI_DATA','JADWAL_SIPIL_DATA','JADWAL_TAMBANG_DATA','KRS_SEVIMA_GUIDE','PAYMENT_SEVIMA_TOKOPEDIA_GUIDE']
+    all_data_loaded_check = True # Use a different variable name to avoid conflict
+    for key in data_keys_to_check:
+        data = APP_CONFIG.get(key)
+        status = 'MISSING/ERROR'
+        # Check if data is loaded and not empty (for dict/list) or not an error string (for text)
+        if data is not None: # Check if key exists
+             if isinstance(data, (dict, list)) and len(data) > 0:
+                  status = 'OK'
+             # Also check for string data that is not an error message and is not empty
+             elif isinstance(data, str) and ('tidak ditemukan' not in data.lower() and 'terjadi kesalahan' not in data.lower() and data.strip()): # Case-insensitive check for error strings
+                  status = 'OK'
+             else: # Data is empty dict/list or an error string or empty string or None
+                  status = 'EMPTY/ERROR'
+                  all_data_loaded_check = False
+        else: # Key is missing from APP_CONFIG (shouldn't happen with .get) or data is None
+             status = 'MISSING/NONE'
+             all_data_loaded_check = False
+
+        print(f"[*] Config Key: {key.ljust(30)}: {status}")
 
     if not nlp:
-         print("\n" + "!"*20 + " ERROR KRITIS " + "!"*20)
-         print("!! Model spaCy gagal dimuat. Chatbot tidak dapat berfungsi. !!")
-         print("!! Periksa path '{MODEL_DIR}' dan integritas model. !!")
-         print("!"*60)
-         # Tidak perlu exit(1) di sini karena sudah di blok try-except loading model
+        print("\n" + "!"*20 + " ERROR KRITIS: Model spaCy gagal dimuat. Chatbot tidak dapat berfungsi penuh. " + "!"*20)
+    # Check against the new variable name
+    elif not all_data_loaded_check:
+         print("\n" + "!"*15 + " PERHATIAN: Beberapa data eksternal gagal dimuat atau kosong. Fungsi chatbot mungkin terbatas. " + "!"*15)
     else:
-        print("\n" + "!"*15 + " PERHATIAN PENTING " + "!"*15)
-        print(">> Pastikan semua placeholder [GANTI ...] dalam kode sudah diisi.")
-        print(">> Pastikan file data di folder 'data/' adalah versi terbaru & akurat.")
-        print(">> Pastikan model spaCy dilatih dengan data yang relevan.")
-        print("!"*60 + "\n")
+        print("\n" + "="*25 + " PERHATIAN PENTING " + "="*25)
+        print(">> Pastikan placeholder [GANTI ...] di config/logic sudah diisi dengan benar.")
+        print(">> Pastikan file data di folder 'data/' (JSON, TXT) adalah versi terbaru.")
+        print(">> Pastikan model spaCy relevan dengan data training dan intent.")
+        print(">> Tinjau ulang DOMAIN_KEYWORDS, OOS_KEYWORDS, INTENT_DESCRIPTIONS di app.py.")
+        print("="*70 + "\n")
+        print("--- Server Siap Dijalankan ---")
 
-        # Ganti debug=False untuk production
-        # Gunakan host='0.0.0.0' agar bisa diakses dari luar container/jaringan lokal
-        # Port bisa disesuaikan jika perlu
-        app.run(debug=True, host='0.0.0.0', port=5000)
 
-# --- END OF FILE app.py ---
+    app.run(debug=True, host='0.0.0.0', port=5000)
+
+# --- END OF CLEANED FILE app.py ---

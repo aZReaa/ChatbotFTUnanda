@@ -89,7 +89,7 @@ labels_intent = [
     "tanya_pembelajaran_prodi", "tanya_pembelajaran_lab",
     "info_krs_sevima",
     "cara_bayar_sevima_tokopedia",
-    "neutral" # Tambahkan label netral jika ada contoh yg tidak cocok
+    "neutral"
 ]
 
 # --- DEFINISIKAN LABEL ENTITAS (NER) ---

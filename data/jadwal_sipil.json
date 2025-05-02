@@ -1,0 +1,818 @@
+{
+  "jadwal_kuliah": {
+    "sipil": {
+      "2024-2025": {
+        "PTM& ALAT BERAT": {
+          "kelas": "S5",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "A04",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "MANAJEMEN KEAIRAN": {
+          "kelas": "Pil. MK1",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "A05",
+          "dosen": "Dr. Ir. H. Muchlis Mappangaja, M.P."
+        },
+        "STRUKTUR BAJA 2": {
+          "kelas": "S1",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "A06",
+          "dosen": "Sudirman, S.T., M.T."
+        },
+        "BAHASA INGGRIS": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "A07",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum. & Alfianty Tajuddin, S.Pd., M.Pd."
+        },
+        "MATEMATIKA LANJUTAN 2": {
+          "kelas": "S1, S2",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA A02",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "STRUKTUR BAJA 2_2": {
+          "kelas": "S3, S4",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B01",
+          "dosen": "Irwan Arnol, S.T., M.T."
+        },
+        "FISIKA DASAR 2": {
+          "kelas": "S2, S4",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B02",
+          "dosen": "Umi Purnama, S.Pd., M.Pd."
+        },
+        "PTM& ALAT BERAT_2": {
+          "kelas": "S4",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "A04",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "MANAJEMEN PROYEK": {
+          "kelas": "S3",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "A05",
+          "dosen": "Waluyo Sulistiono, S.T., M.T."
+        },
+        "MANAJEMEN KEAIRAN_2": {
+          "kelas": "Pil. MK2",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "A06",
+          "dosen": "Andi Tenri, S.T., M.T."
+        },
+        "SEDIMEN TRANSPORT": {
+          "kelas": "Pil. K.ST2",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "A07",
+          "dosen": "Syahrul Ramadhan, S.T., M.T."
+        },
+        "STATISTIKA DAN PROBABILITAS": {
+          "kelas": "S1, S2",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA A02",
+          "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+        },
+        "STATISTIKA DAN PROBABILITAS_2": {
+          "kelas": "S3, S4",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA B01",
+          "dosen": "Andi Fathussalam B., S.T., M.T."
+        },
+        "STRUKTUR BETON 1(BALOK DAN KOLOM)": {
+          "kelas": "S1, S2",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA B02",
+          "dosen": "Sudirman, S.T., M.T."
+        },
+        "MATEMATIKA DASAR 2": {
+          "kelas": "S2",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "A04",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "KEWARGANEGARAAN": {
+          "kelas": "S3",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "A05",
+          "dosen": "Drs. Ayyub, M.Pd. & Ahyar Amir, M.Pd."
+        },
+        "PEMODELAN TRANSPORTASI": {
+          "kelas": "Pil. PT2",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "A06",
+          "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+        },
+        "KEWARGANEGARAAN_2": {
+          "kelas": "S4",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "A07",
+          "dosen": "Hasnawati, S.Pd, M.Pd."
+        },
+        "URBAN TRANSPORTASI": {
+          "kelas": "Pil.UT1, Pil.UT2",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA A02",
+          "dosen": "Dr. Hasbi, S.T., M.SP."
+        },
+        "BAHAN PERKERASAN": {
+          "kelas": "S1, S2",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA B01",
+          "dosen": "Dr. Jusmidah, S.T., M.T."
+        },
+        "PTM& ALAT BERAT_3": {
+          "kelas": "S2",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "A04",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "MATEMATIKA DASAR 2_2": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "A05",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "STRUKTUR BAJA 2_3": {
+          "kelas": "S7",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "A06",
+          "dosen": "Michail Amin, S.T., M.T."
+        },
+        "MANAJEMEN PROYEK_2": {
+          "kelas": "S4",
+          "semester": "4",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "A07",
+          "dosen": "Waluyo Sulistiono, S. T., M. T."
+        },
+        "PENGEMBANGAN SUMBER DAYA AIR": {
+          "kelas": "S5, S6",
+          "semester": "6",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "AULA A02",
+          "dosen": "Muarif, S.T., M.T."
+        },
+        "SURVEI DAN PEMETAAN TOPOGRAFI": {
+          "kelas": "S2, S3",
+          "semester": "2",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "AULA B01",
+          "dosen": "Muhammad Fikri, S.T., M.T."
+        },
+        "METODE& PERALATAN KONSTRUKSI LANJUTAN": {
+          "kelas": "Pil.MP3",
+          "semester": "3",
+          "hari": "Senin",
+          "jam": "14.50- 16.30",
+          "ruang": "AULA B02",
+          "dosen": "Dr. Jusmidah, S.T., M.T."
+        },
+        "PTM& ALAT BERAT_4": {
+          "kelas": "S3",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "A04",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "PENGEMBANGAN SUMBER DAYA AIR_2": {
+          "kelas": "S7",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "A05",
+          "dosen": "Muarif, S.T., M.T."
+        },
+        "MATEMATIKA DASAR 2_3": {
+          "kelas": "S3",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "A06",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "BAHASA INGGRIS_2": {
+          "kelas": "S3",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "A.07",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum. & Alfianty Tajuddin, S.Pd., M.Pd."
+        },
+        "SURVEI DAN PEMETAAN TOPOGRAFI_2": {
+          "kelas": "S4, S5",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA A02",
+          "dosen": "Muhammad Fikri, S.T., M.T."
+        },
+        "PENGEMBANGAN SUMBER DAYA AIR_3": {
+          "kelas": "S3, S4",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B01",
+          "dosen": "Syahrul Ramadhan, S.T., M.T."
+        },
+        "PTM& ALAT BERAT_5": {
+          "kelas": "S1",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "A04",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "MATEMATIKA DASAR 2_4": {
+          "kelas": "S4",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "A05",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "BAHASA INDONESIA": {
+          "kelas": "S2",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "A06",
+          "dosen": "Chece Djafar, S.Pd., M.Pd."
+        },
+        "MANAJEMEN PROYEK_3": {
+          "kelas": "S2",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "A07",
+          "dosen": "Waluyo Sulistiono, S.T., M.T."
+        },
+        "BAHAN PERKERASAN_2": {
+          "kelas": "S3, S4",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA A02",
+          "dosen": "Muhammad Fikri, S.T., M.T."
+        },
+        "PENGEMBANGAN SUMBER DAYA AIR_4": {
+          "kelas": "S1, S2",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA B01",
+          "dosen": "Andi Tenri, S.T., M.T."
+        },
+        "FISIKA DASAR 2_2": {
+          "kelas": "S1, S3",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA B02",
+          "dosen": "Umi Purnama, S.Pd., M.Pd."
+        },
+        "ETIKA PROFESI TEKNIK": {
+          "kelas": "S1",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "A04",
+          "dosen": "Nafsiah Aswawi, S.T., M.Ars."
+        },
+        "MATEMATIKA TEKNIK 1": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "A05",
+          "dosen": "Nurhidayah, S.Si., M.Pd."
+        },
+        "SURVEI DAN PEMETAAN TOPOGRAFI_3": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "A06",
+          "dosen": "Muhammad Fikri, S.T., M.T."
+        },
+        "BAHASA INDONESIA_2": {
+          "kelas": "S3",
+          "semester": "2",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "A07",
+          "dosen": "Chece Djafar, S.Pd., M.Pd."
+        },
+        "PERENCANAAN PELABUHAN": {
+          "kelas": "S5, S6",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA A02",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "METODOLOGI PENELITIAN": {
+          "kelas": "S1, S2",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA B01",
+          "dosen": "Dr. Amiruddin Akbar Fisu, S.T., M.T."
+        },
+        "ANALISIS STRUKTUR 2": {
+          "kelas": "S5",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "14.50- 16.30",
+          "ruang": "A05",
+          "dosen": "Ir. Michail Amin, S.T., M.T."
+        },
+        "ANALISIS STRUKTUR 2_2": {
+          "kelas": "S3",
+          "semester": "4",
+          "hari": "Selasa",
+          "jam": "14.50- 16.30",
+          "ruang": "A06",
+          "dosen": "Muarif, S.T., M.T."
+        },
+        "SEDIMEN TRANSPORT_2": {
+          "kelas": "Pil. K3",
+          "semester": "6",
+          "hari": "Selasa",
+          "jam": "14.50- 16.30",
+          "ruang": "A07",
+          "dosen": "Andi Tenri, S.T., M.T."
+        },
+        "KEWARGANEGARAAN_3": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "A04",
+          "dosen": "Drs. Ayyub, M.Pd. & Ahyar Amir, M.Pd."
+        },
+        "BAHASA INGGRIS_3": {
+          "kelas": "S2",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "A05",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum. & Alfianty Tajuddin, S.Pd., M.Pd."
+        },
+        "STATISTIKA DAN PROBABILITAS_3": {
+          "kelas": "S6",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "A06",
+          "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+        },
+        "ANALISIS STRUKTUR 2_3": {
+          "kelas": "S2",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "A07",
+          "dosen": "Ir. Michail Amin, S.T., M.T."
+        },
+        "PERENCANAAN PELABUHAN_2": {
+          "kelas": "S1, S2",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA A02",
+          "dosen": "Indrajaya, S. T., M. Si."
+        },
+        "METODOLOGI PENELITIAN_2": {
+          "kelas": "S3, S4",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B01",
+          "dosen": "Dr. Amiruddin Akbar Fisu, S.T., M.T."
+        },
+        "ANALISIS STRUKTUR 2_4": {
+          "kelas": "S1,S4",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B02",
+          "dosen": "Ir. Sudirman, S.T., M.T."
+        },
+        "KEWARGANEGARAAN_4": {
+          "kelas": "S2",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "09.50- 11.30",
+          "ruang": "A04",
+          "dosen": "Drs. Ayyub, M.Pd. & Ahyar Amir, M.Pd."
+        },
+        "BAHASA INDONESIA_3": {
+          "kelas": "S4",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "09.50- 11.30",
+          "ruang": "A05",
+          "dosen": "Chece Djafar, S. Pd., M. Pd."
+        },
+        "MATEMATIKA LANJUTAN 2_2": {
+          "kelas": "S3",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "09.50- 11.30",
+          "ruang": "A06",
+          "dosen": "Nurhidayah, S. Si., M. Pd."
+        },
+        "METODOLOGI PENELITIAN_3": {
+          "kelas": "S7",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "09.50- 11.30",
+          "ruang": "A07",
+          "dosen": "Dr. Amiruddin Akbar Fisu, S.T., M.T."
+        },
+        "SISTEM TRANSPORTASI": {
+          "kelas": "S1, S2",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA A02",
+          "dosen": "Hasbi, S. T., M. T."
+        },
+        "STRUKTUR BAJA 2_4": {
+          "kelas": "S6",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "A04",
+          "dosen": "Muarif, S.T."
+        },
+        "DESAIN PONDASI 1": {
+          "kelas": "S1",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "A05",
+          "dosen": "Ir. Sudirman, S.T., M.T."
+        },
+        "BAHASA INDONESIA_4": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "A06",
+          "dosen": "Chece Djafar, S. Pd., M. Pd."
+        },
+        "BAHASA INGGRIS_4": {
+          "kelas": "S4",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "A07",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum. & Alfianty Tajuddin, S.Pd., M.Pd."
+        },
+        "PERENCANAAN PELABUHAN_3": {
+          "kelas": "S3, S4",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA A02",
+          "dosen": "Indrajaya, S. T., M. Si."
+        },
+        "METODOLOGI PENELITIAN_4": {
+          "kelas": "S5, S6",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "13.00- 14.40",
+          "ruang": "AULA B01",
+          "dosen": "Dr. Amiruddin Akbar Fisu, S.T., M.T."
+        },
+        "MATEMATIKA LANJUTAN 2_3": {
+          "kelas": "S4",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "14.50- 16.30",
+          "ruang": "A04",
+          "dosen": "Irwan Arnol, S.T., M.T."
+        },
+        "SISTEM TRANSPORTASI_2": {
+          "kelas": "S5",
+          "semester": "4",
+          "hari": "Rabu",
+          "jam": "14.50- 16.30",
+          "ruang": "A05",
+          "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+        },
+        "BAHASA INDONESIA_5": {
+          "kelas": "S5",
+          "semester": "2",
+          "hari": "Rabu",
+          "jam": "14.50- 16.30",
+          "ruang": "A06",
+          "dosen": "Chece Djafar, S. Pd., M. Pd."
+        },
+        "PERENCANAAN PELABUHAN_4": {
+          "kelas": "S7",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "14.50- 16.30",
+          "ruang": "A07",
+          "dosen": "Indrajaya, S.T., M.Si."
+        },
+        "PERENCANAAN LAPANGAN TERBANG": {
+          "kelas": "S1, S2",
+          "semester": "6",
+          "hari": "Rabu",
+          "jam": "14.50- 16.30",
+          "ruang": "AULA B01",
+          "dosen": "Dr. Hasbi, S.T., M.SP."
+        },
+        "STRUKTUR KAYU": {
+          "kelas": "S5",
+          "semester": "4",
+          "hari": "Kamis",
+          "jam": "08.00- 09.40",
+          "ruang": "A04",
+          "dosen": "Ir. Michail Amin, S. T., M. T."
+        },
+        "TEKNOLOGI BAHAN": {
+          "kelas": "S1",
+          "semester": "2",
+          "hari": "Kamis",
+          "jam": "08.00- 09.40",
+          "ruang": "A05",
+          "dosen": "Nafsiah Aswawi, S.T., M.Ars."
+        },
+        "MEKANIKA TANAH": {
+          "kelas": "S7",
+          "semester": "6",
+          "hari": "Kamis",
+          "jam": "08.00- 09.40",
+          "ruang": "A06",
+          "dosen": "Syahrul Ramadhan, S.T., M.T."
+        },
+        "METODE& PERALATAN KONSTRUKSI LANJUTAN_2": {
+          "kelas": "Pil.MP1, Pil.MP2",
+          "semester": "6",
+          "hari": "Kamis",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA A02",
+          "dosen": "Dr. Jusmidah, S.T., M.T."
+        },
+        "DINAMIKA STRUKTUR": {
+          "kelas": "Pil. Str DS1, Pil. Str DS2",
+          "semester": "6",
+          "hari": "Kamis",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B01",
+          "dosen": "Irwan Arnol, S.T., M.T."
+        },
+        "KEWARGANEGARAAN_5": {
+          "kelas": "S5",
+          "semester": "2",
+          "hari": "Kamis",
+          "jam": "09.50- 11.30",
+          "ruang": "A04",
+          "dosen": "Drs. Ayyub, M.Pd. & Ahyar Amir, M.Pd."
+        },
+        "K3& UU PERBURUHAN": {
+          "kelas": "S1,S2",
+          "semester": "2",
+          "hari": "Kamis",
+          "jam": "09.50- 11.30",
+          "ruang": "A05",
+          "dosen": "Nafsiah Aswawi, S.T., M.Ars."
+        },
+        "STRUKTUR BETON PRATEKAN DAN PRACETAK": {
+          "kelas": "Pil. Str BP2",
+          "semester": "6",
+          "hari": "Kamis",
+          "jam": "09.50- 11.30",
+          "ruang": "A06",
+          "dosen": "Irwan Arnol, S.T., M.T."
+        },
+        "MANAJEMEN PROYEK_4": {
+          "kelas": "S1",
+          "semester": "4",
+          "hari": "Kamis",
+          "jam": "09.50- 11.30",
+          "ruang": "A07",
+          "dosen": "Dr. Jusmidah, S.T., M.T."
+        },
+        "STRUKTUR BETON 1(BALOK DAN KOLOM)_2": {
+          "kelas": "S3, S4",
+          "semester": "4",
+          "hari": "Kamis",
+          "jam": "09.50- 11.30",
+          "ruang": "AULA A02",
+          "dosen": "Ir. Michail Amin, S.T., M.T."
+        },
+        "BAHASA INGGRIS_5": {
+          "kelas": "S5",
+          "semester": "2",
+          "hari": "Kamis",
+          "jam": "13.00- 14.40",
+          "ruang": "A04",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum. & Alfianty Tajuddin, S.Pd., M.Pd."
+        },
+        "MANAJEMEN PROYEK_5": {
+          "kelas": "S5",
+          "semester": "4",
+          "hari": "Kamis",
+          "jam": "13.00- 14.40",
+          "ruang": "A05",
+          "dosen": "Waluyo Sulistiono, S. T., M. T."
+        },
+        "K3& UU PERBURUHAN_2": {
+          "kelas": "S2",
+          "semester": "2",
+          "hari": "Kamis",
+          "jam": "13.00- 14.40",
+          "ruang": "A06",
+          "dosen": "Nafsiah Aswawi, S.T., M.Ars."
+        },
+        "PEMUKIMAN DAN PERUMAHAN": {
+          "kelas": "Pil PP1",
+          "semester": "6",
+          "hari": "Kamis",
+          "jam": "13.00- 14.40",
+          "ruang": "A07",
+          "dosen": "Dr. Amiruddin Akbar Fisu, S.T., M.T."
+        },
+        "MANAJEMEN PROYEK_6": {
+          "kelas": "S6",
+          "semester": "4",
+          "hari": "Jumat",
+          "jam": "08.00- 09.40",
+          "ruang": "A04",
+          "dosen": "Dr. Jusmidah, S.T., M.T."
+        },
+        "BAHASA INDONESIA_6": {
+          "kelas": "S6",
+          "semester": "2",
+          "hari": "Jumat",
+          "jam": "08.00- 09.40",
+          "ruang": "A05",
+          "dosen": "Chece Djafar, S.Pd., M.Pd."
+        },
+        "STRUKTUR KAYU_2": {
+          "kelas": "S1, S2",
+          "semester": "4",
+          "hari": "Jumat",
+          "jam": "08.00- 09.40",
+          "ruang": "AULA B01",
+          "dosen": "Ir. Sudirman S.T., M.T."
+        },
+        "BAHASA INGGRIS_6": {
+          "kelas": "S6",
+          "semester": "2",
+          "hari": "Jumat",
+          "jam": "09.50- 11.30",
+          "ruang": "A04",
+          "dosen": "Musyrifah Mahfuddin, S.S., M.Hum."
+        }
+        },
+        "STATISTIKA DAN PROBABILITAS_2": {
+          "kelas": "S5",
+          "semester": "2",
+          "hari": "Jumat",
+          "jam": "14:50 - 16:30",
+          "ruang": "A04",
+          "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+        },
+        "STRUKTUR KAYU_": {
+          "kelas": "S6",
+          "semester": "4",
+          "hari": "Jumat",
+          "jam": "14:50 - 16:30",
+          "ruang": "A05",
+          "dosen": "Ir. Sudirman S.T., M.T."
+        },
+          "MANAJEMEN PROYEK": {
+            "kelas": "S6",
+            "semester": "4",
+            "hari": "Jumat",
+            "jam": "08.00- 09.40",
+            "ruang": "A04",
+            "dosen": "Dr. Jusmidah, S.T., M.T."
+          },
+          "BAHASA INDONESIA": {
+            "kelas": "S6",
+            "semester": "2",
+            "hari": "Jumat",
+            "jam": "08.00- 09.40",
+            "ruang": "A05",
+            "dosen": "Chece Djafar, S.Pd., M.Pd."
+          },
+          "STRUKTUR KAYU": {
+            "kelas": "S1, S2",
+            "semester": "4",
+            "hari": "Jumat",
+            "jam": "08.00- 09.40",
+            "ruang": "AULA B01",
+            "dosen": "Ir. Sudirman S.T., M.T."
+          },
+          "BAHASA INGGRIS": {
+            "kelas": "S6",
+            "semester": "2",
+            "hari": "Jumat",
+            "jam": "09.50- 11.30",
+            "ruang": "A04",
+            "dosen": "Musyrifah Mahfuddin, S.S., M.Hum."
+          },
+          "STATISTIKA DAN PROBABILITAS": {
+            "kelas": "S8",
+            "semester": "2",
+            "hari": "Jumat",
+            "jam": "09.50- 11.30",
+            "ruang": "A05",
+            "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+          },
+          "STRUKTUR BETON PRATEKAN DAN PRACETAK": {
+            "kelas": "Pil. Str BP1, Pil Str BP3",
+            "semester": "6",
+            "hari": "Jumat",
+            "jam": "09.50- 11.30",
+            "ruang": "AULA B01",
+            "dosen": "Sudirman, S.T., M.T."
+          },
+          "STRUKTUR BAJA 2": {
+            "kelas": "S6",
+            "semester": "6",
+            "hari": "Jumat",
+            "jam": "13:00 - 14:40",
+            "ruang": "A04",
+            "dosen": "Muarif, S.T."
+          },
+          "STATISTIKA DAN PROBABILITAS_": {
+            "kelas": "S5",
+            "semester": "2",
+            "hari": "Jumat",
+            "jam": "14:50 - 16:30",
+            "ruang": "A04",
+            "dosen": "Muhammad Rafdy Ardiansyah, S.T., M.T."
+          },
+          "STRUKTUR KAYU_2": {
+            "kelas": "S6",
+            "semester": "4",
+            "hari": "Jumat",
+            "jam": "14:50 - 16:30",
+            "ruang": "A05",
+            "dosen": "Ir. Sudirman S.T., M.T."
+          }
+        }
+      }
+    }
+  
+    

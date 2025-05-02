@@ -1,0 +1,375 @@
+{
+    "jadwal_kuliah": {
+      "TP": {
+        "2024-2025": {
+          "Gambar Teknik dan CAD": [
+            {
+              "kelas": "P1",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "08:00-09:40",
+              "ruang": "PB.1 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P2",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "09:50-11:30",
+              "ruang": "PB.1 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P15",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "12:40-14:20",
+              "ruang": "PB.6 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P4",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P5",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "09:50-11:30",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P9",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "12:40-14:20",
+              "ruang": "PB.5 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P11",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "14:30-16:20",
+              "ruang": "PB.5 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P7",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "08:00-09:40",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P8",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "09:50-11:30",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P12",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "14:30-16:20",
+              "ruang": "PB.4 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P6",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "08:00-09:40",
+              "ruang": "PB.4 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            },
+            {
+              "kelas": "P13",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "09:50-11:30",
+              "ruang": "PB.4 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P14",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "12:40-14:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P10",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "12:40-14:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P3",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "14:30-16:20",
+              "ruang": "PB.5 Kampus Kamanre",
+              "dosen": "Andi Fathussalam, S.T., M.T / Dr. Amiruddin Akbar Fisu, S.T., M.T"
+            }
+          ],
+          "Fisika Lanjut": [
+            {
+              "kelas": "P15",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "08:00-09:40",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P3",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "09:50-11:30",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P11",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "12:40-14:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P12",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P13",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "12:40-14:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P14",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P6",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "08:00-09:40",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P7",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "09:50-11:30",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P10",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Aris Manga, S.T., M.T"
+            },
+            {
+              "kelas": "P8",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "08:00-09:40",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P9",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "09:50-11:30",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P1",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "12:40-14:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Rinto Suppa, S.Si, M.Pd"
+            },
+            {
+              "kelas": "P4",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P5",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "08:00-09:40",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            },
+            {
+              "kelas": "P2",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "14:30-16:20",
+              "ruang": "PB.4 Kampus Kamanre",
+              "dosen": "Nurhaniah, S.Si., M.Si"
+            }
+          ],
+          "Kimia Lanjut": [
+            {
+              "kelas": "P3",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "08:00-09:40",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P4",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "09:50-11:30",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P12",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "12:40-14:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Jurniati, S.Pi., M.Pi"
+            },
+            {
+              "kelas": "P13",
+              "semester": "II",
+              "hari": "Senin",
+              "jam": "14:30-16:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Jurniati, S.Pi., M.Pi"
+            },
+            {
+              "kelas": "P5",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "08:00-09:40",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P6",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "09:50-11:30",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P14",
+              "semester": "II",
+              "hari": "Selasa",
+              "jam": "12:40-14:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Jurniati, S.Pi., M.Pi"
+            },
+            {
+              "kelas": "P10",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "12:40-14:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Frengky Seki Banunaek, S.T., M.T"
+            },
+            {
+              "kelas": "P11",
+              "semester": "II",
+              "hari": "Rabu",
+              "jam": "14:30-16:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Jurniati, S.Pi., M.Pi"
+            },
+            {
+              "kelas": "P9",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "08:00-09:40",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Frengky Seki Banunaek, S.T., M.T"
+            },
+            {
+              "kelas": "P1",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "09:50-11:30",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P2",
+              "semester": "II",
+              "hari": "Kamis",
+              "jam": "14:30-16:20",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Dr. Ir. Budiawan Suliawan, S.T., M.T., IPm."
+            },
+            {
+              "kelas": "P7",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "08:00-09:40",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Frengky Seki Banunaek, S.T., M.T"
+            },
+            {
+              "kelas": "P8",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "09:50-11:30",
+              "ruang": "PB.3 Kampus Kamanre",
+              "dosen": "Frengky Seki Banunaek, S.T., M.T"
+            },
+            {
+              "kelas": "P15",
+              "semester": "II",
+              "hari": "Jumat",
+              "jam": "14:30-16:20",
+              "ruang": "PB.2 Kampus Kamanre",
+              "dosen": "Dr. Jurniati, S.Pi., M.Pi"
+            }
+          ]
+        }
+      }
+    }
+  }
+  

@@ -1,73 +1,224 @@
 {
-    "jadwal_kuliah": {
-      "TI": {
-        "2024-2025": {
-          "Metode Numerik": {
-            "kelas": "TI-2",
-            "semester": "VI",
-            "hari": "Senin",
-            "jam": "08:00 - 09:40",
-            "ruang": "B-01",
-            "dosen": "Apriyanto, S.Pd., M.Sc."
-          },
-          "Bahasa Inggris": {
-            "kelas": "TI-2",
-            "semester": "II",
-            "hari": "Senin",
-            "jam": "09:50 - 11:30",
-            "ruang": "B-02",
-            "dosen": "Musyrifa Mahfuddin, S.S., M.Hum. & Alfianti Tadjuddin, S.Pd., M.Pd."
-          },
-          "Pemodelan Berorientasi Objek": {
-            "kelas": "TI-1",
-            "semester": "IV",
-            "hari": "Selasa",
-            "jam": "08:00 - 09:40",
-            "ruang": "A-05",
-            "dosen": "Mukramin, S.Kom., M.Kom."
-          },
-          "Pemrograman Dasar": {
-            "kelas": "TI-1",
-            "semester": "II",
-            "hari": "Rabu",
-            "jam": "08:00 - 09:40",
-            "ruang": "B-01",
-            "dosen": "Solmin Paembonan, S.Kom., M.Cs."
-          },
-          "Jaringan Komputer": {
-            "kelas": "TI-1",
-            "semester": "IV",
-            "hari": "Kamis",
-            "jam": "10:00 - 11:30",
-            "ruang": "A-05",
-            "dosen": "Muhlis Muhallim, S.Kom., M.Cs."
-          },
-          "Desain Grafis": {
-            "kelas": "TI-Gab",
-            "semester": "VI",
-            "hari": "Jumat",
-            "jam": "13:00 - 14:40",
-            "ruang": "B-02",
-            "dosen": "Vaira Indah Wahyuni, S.Pd., M.Pd."
-          },
-          "Sistem Informasi": {
-            "kelas": "TI-1",
-            "semester": "VI & VIII",
-            "hari": "Rabu",
-            "jam": "13:00 - 14:40",
-            "ruang": "B-02",
-            "dosen": "Hisma Abduh, S.Kom., M.Cs."
-          },
-          "Keamanan Jaringan": {
-            "kelas": "TI-2",
-            "semester": "VI",
-            "hari": "Kamis",
-            "jam": "14:50 - 16:30",
-            "ruang": "A-05",
-            "dosen": "Dasril, S.Kom., M.Kom."
-          }
+  "jadwal_kuliah": {
+    "TI": {
+      "2024-2025": {
+        "Metode Numerik": {
+          "kelas": "TI-2",
+          "semester": "VI",
+          "hari": "Senin",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-01",
+          "dosen": "Apriyanto, S.Pd., M.Sc."
+        },
+        "Bahasa Inggris": {
+          "kelas": "TI-2",
+          "semester": "II",
+          "hari": "Senin",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-02",
+          "dosen": "Musyrifa Mahfuddin, S.S., M.Hum. & Alfianti Tadjuddin, S.Pd., M.Pd."
+        },
+        "Pemodelan Berorientasi Objek": {
+          "kelas": "TI-1",
+          "semester": "IV",
+          "hari": "Selasa",
+          "jam": "08:00 - 09:40",
+          "ruang": "A-05",
+          "dosen": "Mukramin, S.Kom., M.Kom."
+        },
+        "Pemrograman Dasar": {
+          "kelas": "TI-1",
+          "semester": "II",
+          "hari": "Rabu",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-01",
+          "dosen": "Solmin Paembonan, S.Kom., M.Cs."
+        },
+        "Jaringan Komputer": {
+          "kelas": "TI-1",
+          "semester": "IV",
+          "hari": "Kamis",
+          "jam": "10:00 - 11:30",
+          "ruang": "A-05",
+          "dosen": "Muhlis Muhallim, S.Kom., M.Cs."
+        },
+        "Desain Grafis": {
+          "kelas": "TI-Gab",
+          "semester": "VI",
+          "hari": "Jumat",
+          "jam": "13:00 - 14:40",
+          "ruang": "B-02",
+          "dosen": "Vaira Indah Wahyuni, S.Pd., M.Pd."
+        },
+        "Sistem Informasi": {
+          "kelas": "TI-1",
+          "semester": "VI & VIII",
+          "hari": "Rabu",
+          "jam": "13:00 - 14:40",
+          "ruang": "B-02",
+          "dosen": "Hisma Abduh, S.Kom., M.Cs."
+        },
+        "Keamanan Jaringan": {
+          "kelas": "TI-2",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "14:50 - 16:30",
+          "ruang": "A-05",
+          "dosen": "Dasril, S.Kom., M.Kom."
+        },
+        "Fisika Dasar": {
+          "kelas": "TI-1",
+          "semester": "II",
+          "hari": "Selasa",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-01",
+          "dosen": "Rinto Suppa, S.Si., M.Pd."
+        },
+        "Grafika Komputer": {
+          "kelas": "TI-1",
+          "semester": "IV",
+          "hari": "Selasa",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-02",
+          "dosen": "Rosdiana, S.T., M.Kom."
+        },
+        "Arsitektur dan Organisasi Komputer": {
+          "kelas": "TI-3",
+          "semester": "II",
+          "hari": "Selasa",
+          "jam": "08:00 - 09:40",
+          "ruang": "A-06",
+          "dosen": "Vaira Indah Wahyuni, S.Pd., M.Pd."
+        },
+        "Sistem Pakar": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Selasa",
+          "jam": "13:00 - 14:40",
+          "ruang": "B-02",
+          "dosen": "Hisma Abduh, S.Kom., M.Cs."
+        },
+        "Analisis Perancangan Sistem": {
+          "kelas": "TI-1",
+          "semester": "IV",
+          "hari": "Selasa",
+          "jam": "13:00 - 14:40",
+          "ruang": "A-05",
+          "dosen": "Dasril, S.Kom., M.Kom."
+        },
+        "Sistem Pendukung Keputusan": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Rabu",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-01",
+          "dosen": "Solmin Paembonan, S.Kom., M.Cs."
+        },
+        "Matematika Diskrit": {
+          "kelas": "TI-2",
+          "semester": "II",
+          "hari": "Rabu",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-02",
+          "dosen": "Mafidapuspadina S.Pd, M.Pd."
+        },
+        "Pemrograman WEB": {
+          "kelas": "TI-2",
+          "semester": "IV",
+          "hari": "Rabu",
+          "jam": "08:00 - 09:40",
+          "ruang": "A-05",
+          "dosen": "Mukramin, S.Kom., M.Kom."
+        },
+        "Desain dan Analisis Algoritma": {
+          "kelas": "TI-1",
+          "semester": "IV",
+          "hari": "Rabu",
+          "jam": "13:00 - 14:40",
+          "ruang": "B-01",
+          "dosen": "Hisma Abduh, S.Kom., M.Cs."
+        },
+        "Aljabar Linear": {
+          "kelas": "TI-3",
+          "semester": "II",
+          "hari": "Rabu",
+          "jam": "13:00 - 14:40",
+          "ruang": "A-06",
+          "dosen": "Apriyanto, S.Pd., M.Sc."
+        },
+        "Metode Penelitian dan Penulisan": {
+          "kelas": "TI-2",
+          "semester": "VI",
+          "hari": "Rabu",
+          "jam": "14:50 - 16:30",
+          "ruang": "A-06",
+          "dosen": "Muhlis Muhallim, S.Kom., M.Cs."
+        },
+        "Manajemen Proyek Teknologi Informasi": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-01",
+          "dosen": "Ir. Budiawan Sulaeman, S.T., M.T. IPM."
+        },
+        "Data Mining": {
+          "kelas": "TI-2",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "08:00 - 09:40",
+          "ruang": "B-02",
+          "dosen": "Rinto Suppa, S.Si., M.Pd."
+        },
+        "Pendidikan Kewarganegaraan": {
+          "kelas": "TI-1",
+          "semester": "II",
+          "hari": "Kamis",
+          "jam": "08:00 - 09:40",
+          "ruang": "A-05",
+          "dosen": "Hasnahwati, S.Pd.I., M.Pd.I."
+        },
+        "Etika Profesi Teknologi Informasi": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "09:50 - 11:30",
+          "ruang": "B-02",
+          "dosen": "Muhlis Muhallim, S.Kom., M.Cs."
+        },
+        "Cloud Computing": {
+          "kelas": "TI-1",
+          "semester": "VIII",
+          "hari": "Kamis",
+          "jam": "09:50 - 11:30",
+          "ruang": "A-06",
+          "dosen": "Dasril, S.Kom., M.Kom."
+        },
+        "Pemrograman Jaringan": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "13:00 - 14:40",
+          "ruang": "B-01",
+          "dosen": "Dasril, S.Kom., M.Kom."
+        },
+        "Pemrograman Mobile": {
+          "kelas": "TI-1",
+          "semester": "VI",
+          "hari": "Kamis",
+          "jam": "14:50 - 16:30",
+          "ruang": "B-01",
+          "dosen": "Mukramin, S.Kom., M.Kom."
+        },
+        "Sistem Informasi Geografis": {
+          "kelas": "TI-Gab",
+          "semester": "VIII",
+          "hari": "Rabu",
+          "jam": "14:50 - 16:30",
+          "ruang": "A-06",
+          "dosen": "Vaira Indah Wahyuni, S.Pd., M.Pd."
         }
       }
     }
   }
-  
+}  
