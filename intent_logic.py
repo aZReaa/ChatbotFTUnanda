@@ -26,7 +26,7 @@ def get_safe_user_name(user_name):
     if len(user_name.strip()) < 2 or user_name.strip().lower() in ["saya", "aku", "admin", "bot"]:
          return None
     return escape(user_name.strip())
-    
+
 def get_sapaan(user_name, awal_kalimat=False):
     """Menghasilkan sapaan yang sesuai (sudah di-escape)."""
     safe_name = get_safe_user_name(user_name)
@@ -39,13 +39,14 @@ def get_sapaan(user_name, awal_kalimat=False):
         return "Baik" if awal_kalimat else ""
 
 # --- Helper Function Spesifik Jadwal (Gabungan TI, Sipil, Tambang) ---
+# Menggunakan satu helper function untuk semua prodi yang datanya ada
 def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, config):
     """ Mencari dan memformat jadwal untuk prodi spesifik (TI, Sipil, Tambang)."""
     sapaan_tengah = get_sapaan(user_name)
     sapaan_awal_kalimat = get_sapaan(user_name, awal_kalimat=True)
 
     # Tentukan key data dan link berdasarkan nama prodi
-    # Mapping nama prodi kanonikal ke key config
+    # Mapping nama prodi kanonikal ke key config dan short name
     prodi_mapping = {
         "Teknik Informatika": {"data_key": "JADWAL_TI_DATA", "link_key": "LINK_JADWAL_TI", "short_name": "TI"},
         "Teknik Sipil": {"data_key": "JADWAL_SIPIL_DATA", "link_key": "LINK_JADWAL_SIPIL", "short_name": "Sipil"},
@@ -68,7 +69,7 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
     periode = "2024-2025" # <<-- KONFIGURASI PERIODE JADWAL DI SINI -->>
 
     # Check if the main data structure exists and contains the prodi's data
-    if not jadwal_prodi_data or "jadwal_kuliah" not in jadwal_prodi_data or prodi_short_name not in jadwal_prodi_data["jadwal_kuliah"]:
+    if not jadwal_prodi_data or not isinstance(jadwal_prodi_data.get("jadwal_kuliah"), dict) or prodi_short_name not in jadwal_prodi_data["jadwal_kuliah"]:
         fallback_msg = ""
         if link_jadwal_prodi and "[GANTI" not in link_jadwal_prodi:
              fallback_msg = f"Anda bisa cek link ini sebagai alternatif: {link_jadwal_prodi}"
@@ -79,10 +80,10 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
     # Get schedule data for the specific period and prodi
     schedule_data = jadwal_prodi_data["jadwal_kuliah"].get(prodi_short_name, {}).get(periode)
 
-    if not schedule_data:
+    if not schedule_data or not isinstance(schedule_data, dict):
          fallback_msg = ""
          if link_jadwal_prodi and "[GANTI" not in link_jadwal_prodi:
-             fallback_msg = f"Anda bisa cek link ini: {link_jadwal_prodi}"
+             fallback_msg = f"Coba cek link ini: {link_jadwal_prodi}"
          else:
              fallback_msg = f"Silakan cek pengumuman resmi dari prodi {prodi_name}."
          return (f"Maaf {sapaan_tengah}, data jadwal kuliah **{escape(prodi_name)}** untuk periode {periode} belum tersedia di data saya. {fallback_msg}"), "fallback_jadwal_prodi_no_period_data"
@@ -120,14 +121,16 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
         matched_day_key = None
         # Cari pola seperti "hari senin", "jadwal senin", atau hanya "senin"
         for day_key, day_proper in days_map.items():
-            if re.search(r'\b(hari\s+)?' + re.escape(day_key) + r'\b', original_text_lower):
+            # Adjusted regex to allow "jadwal senin", "senin jadwal", "hari senin", or just "senin"
+             if re.search(r'\b(' + re.escape(day_key) + r'|hari\s+' + re.escape(day_key) + r'|' + re.escape(day_key) + r'\s+jadwal)\b', original_text_lower):
                 matched_day_key = day_key
                 search_term = f"Hari {day_proper}"
                 break
         if matched_day_key:
             day_proper_case = days_map[matched_day_key]
             for course_name, details in schedule_data.items():
-                if details.get("hari", "").lower() == day_proper_case.lower():
+                # Ensure 'hari' key exists and is a string before lowercasing
+                if isinstance(details.get("hari"), str) and details["hari"].lower() == day_proper_case.lower():
                     found_schedule.append((course_name, details))
             # Urutkan berdasarkan jam jika ditemukan berdasarkan hari
             found_schedule.sort(key=lambda item: item[1].get("jam", "99:99"))
@@ -155,27 +158,27 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
             # Format berbeda jika mencari matkul spesifik vs hari
             if matched_course: # Jika mencari matkul spesifik
                  response_parts.append(f"- **{escape(course_name)}**:")
-                 response_parts.append(f"  - Hari/Jam: {hari}, {jam}")
-                 response_parts.append(f"  - Ruang: {ruang}")
-                 response_parts.append(f"  - Dosen: {dosen}")
+                 response_parts.append(f"  - Hari/Jam: {hari}, {jam}") # Hari dan jam tidak perlu escape jika sudah dari data terpercaya
+                 response_parts.append(f"  - Ruang: {escape(str(ruang))}") # Ruang mungkin perlu escape
+                 response_parts.append(f"  - Dosen: {escape(str(dosen))}") # Dosen mungkin perlu escape
                  # Hanya tampilkan kelas/semester jika ada dan valid
                  kelas_sem_info = []
-                 if kelas and str(kelas).strip(): kelas_sem_info.append(f"Kelas: {kelas}")
-                 if semester is not None: kelas_sem_info.append(f"Sem: {semester}")
+                 if kelas is not None and str(kelas).strip(): kelas_sem_info.append(f"Kelas: {escape(str(kelas))}")
+                 if semester is not None and str(semester).strip(): kelas_sem_info.append(f"Sem: {escape(str(semester))}")
                  if kelas_sem_info: response_parts.append(f"  - {' / '.join(kelas_sem_info)}")
 
             else: # Jika mencari berdasarkan hari
                  # Tampilkan info lengkap dalam satu baris atau format ringkas
-                 details_parts = [f"({hari}, {jam})"]
-                 if ruang and str(ruang).strip(): details_parts.append(f"di R.{ruang}")
-                 if dosen and str(dosen).strip(): details_parts.append(f"Dosen: {dosen}")
+                 details_parts = [f"({hari}, {jam})"] # Hari dan jam tidak perlu escape
+                 if ruang is not None and str(ruang).strip(): details_parts.append(f"di R.{escape(str(ruang))}")
+                 if dosen is not None and str(dosen).strip(): details_parts.append(f"Dosen: {escape(str(dosen))}")
                  # Tambahkan kelas/semester jika ada
                  kelas_sem_info = []
-                 if kelas and str(kelas).strip(): kelas_sem_info.append(f"Kelas: {kelas}")
-                 if semester is not None: kelas_sem_info.append(f"Sem: {semester}")
+                 if kelas is not None and str(kelas).strip(): kelas_sem_info.append(f"Kelas: {escape(str(kelas))}")
+                 if semester is not None and str(semester).strip(): kelas_sem_info.append(f"Sem: {escape(str(semester))}")
                  if kelas_sem_info: details_parts.append(f"({' / '.join(kelas_sem_info)})")
 
-                 response_parts.append(f"- **{escape(course_name)}** {' '.join(details_parts)}")
+                 response_parts.append(f"- **{escape(course_name)}** {' '.join(details_parts)}") # Nama matkul perlu escape
 
 
         response_parts.append("\n*Jadwal dapat berubah, selalu konfirmasi ke prodi/dosen.*")
@@ -188,12 +191,14 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
         # Tawarkan contoh matkul jika ada di data (ambil 1-2 contoh)
         if available_courses:
              sample_courses = random.sample(available_courses, min(len(available_courses), 2))
+             # Escape contoh mata kuliah
              response_parts.append(f"- **Mata kuliah tertentu?** (Contoh: 'jadwal {escape(random.choice(sample_courses))}')")
         else:
              response_parts.append("- **Mata kuliah tertentu?**") # Tanpa contoh jika data kosong
 
-        response_parts.append("- **Hari tertentu?** (Contoh: 'jadwal hari senin')")
+        response_parts.append("- **Hari tertentu?** (Contoh: 'jadwal kuliah hari senin')")
 
+        # Tampilkan link jika tersedia dan bukan placeholder
         if link_jadwal_prodi and "[GANTI" not in link_jadwal_prodi:
             response_parts.append(f"\nAtau Anda bisa cek link jadwal lengkap (jika tersedia) di sini: {link_jadwal_prodi}")
         else:
@@ -329,6 +334,8 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
     ft_fees = config.get('FT_FEES', {})
     pmb_info = config.get('PMB_INFO', {})
     learning_content = config.get('LEARNING_CONTENT', {})
+    # spp_data sudah diambil di helper spp
+    # jadwal_ti_data, jadwal_sipil_data, jadwal_tambang_data diambil di helper jadwal
     lab_terms = config.get('TERMS_DATA', {}).get('lab', {}) # Ambil terms jika perlu
     prodi_terms = config.get('TERMS_DATA', {}).get('prodi', {}) # Ambil terms jika perlu
 
@@ -381,7 +388,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
              response_text = ("Saya adalah chatbot Fakultas Teknik Universitas Andi Djemma. "
                               "Saya dirancang untuk membantu memberikan informasi seputar fakultas, "
                               "Penerimaan Mahasiswa Baru (PMB), biaya kuliah (SPP, praktikum), "
-                              "informasi prodi & lab, jadwal kuliah (termasuk detail jadwal TI), panduan KRS dan pembayaran, serta kontak. "
+                              "informasi prodi & lab, jadwal kuliah, panduan KRS dan pembayaran, serta kontak. "
                               "Ada yang bisa saya bantu?")
              final_intent_category = "ask_bot_identity_handled"
 
@@ -453,7 +460,11 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                  "Teknik Pertambangan": config.get('JADWAL_TAMBANG_DATA'),
             }
             # Filter prodi yang datanya benar-benar ada dan tidak kosong
-            available_jadwal_prodi = {p: data for p, data in supported_jadwal_prodi.items() if data and isinstance(data, dict) and data.get("jadwal_kuliah") and data["jadwal_kuliah"].get(p.replace("Teknik ", ""))}
+            # Check if data exists, is a dictionary, contains "jadwal_kuliah", and that key is also a dictionary
+            available_jadwal_prodi = {
+                p: data for p, data in supported_jadwal_prodi.items()
+                if data and isinstance(data, dict) and isinstance(data.get("jadwal_kuliah"), dict) and data["jadwal_kuliah"]
+            }
 
 
             if detected_prodi and detected_prodi in available_jadwal_prodi:
@@ -472,7 +483,8 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                     base_response += f"khususnya untuk **{escape(detected_prodi)}**, "
                     prodi_link_key = f"LINK_JADWAL_{detected_prodi.replace('Teknik ', '').upper()}"
                     prodi_specific_link = config.get(prodi_link_key)
-                    if prodi_specific_link and "[GANTI" not in prodi_specific_link:
+                    # Pastikan link bukan placeholder
+                    if prodi_specific_link and "[GANTI" not in prodi_specific_link and "http" in prodi_specific_link:
                         links_found.append(f"- **{escape(detected_prodi)}**: {prodi_specific_link}")
                         specific_prodi_link_handled = True
 
@@ -481,7 +493,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                     else:
                          base_response += "berikut link yang mungkin relevan:\n"
 
-                # Jika tidak ada prodi terdeteksi ATAU link spesifik prodi terdeteksi tidak ditemukan
+                # Jika tidak ada prodi terdeteksi ATAU link spesifik tidak ketemu, tawarkan semua link
                 if not detected_prodi or not specific_prodi_link_handled:
                     if not detected_prodi:
                         base_response += "berikut link jadwal yang mungkin relevan untuk beberapa prodi:\n"
@@ -489,16 +501,17 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                          base_response += "Namun, Anda bisa cek link prodi lain atau link umum berikut:\n"
 
                     # Tambahkan link untuk prodi yang didukung, kecuali yang sudah ditambahkan
-                    if detected_prodi != "Teknik Informatika" and link_jadwal_ti and "[GANTI" not in link_jadwal_ti: links_found.append(f"- **Teknik Informatika**: {link_jadwal_ti}")
-                    if detected_prodi != "Teknik Sipil" and link_jadwal_sipil and "[GANTI" not in link_jadwal_sipil: links_found.append(f"- **Teknik Sipil**: {link_jadwal_sipil}")
-                    if detected_prodi != "Teknik Pertambangan" and link_jadwal_tambang and "[GANTI" not in link_jadwal_tambang: links_found.append(f"- **Teknik Pertambangan**: {link_jadwal_tambang}")
-                    if link_jadwal_umum_ft and "[GANTI" not in link_jadwal_umum_ft: links_found.append(f"- **Umum Fakultas**: {link_jadwal_umum_ft}")
+                    # Pastikan link bukan placeholder
+                    if detected_prodi != "Teknik Informatika" and link_jadwal_ti and "[GANTI" not in link_jadwal_ti and "http" in link_jadwal_ti: links_found.append(f"- **Teknik Informatika**: {link_jadwal_ti}")
+                    if detected_prodi != "Teknik Sipil" and link_jadwal_sipil and "[GANTI" not in link_jadwal_sipil and "http" in link_jadwal_sipil: links_found.append(f"- **Teknik Sipil**: {link_jadwal_sipil}")
+                    if detected_prodi != "Teknik Pertambangan" and link_jadwal_tambang and "[GANTI" not in link_jadwal_tambang and "http" in link_jadwal_tambang: links_found.append(f"- **Teknik Pertambangan**: {link_jadwal_tambang}")
+                    if link_jadwal_umum_ft and "[GANTI" not in link_jadwal_umum_ft and "http" in link_jadwal_umum_ft: links_found.append(f"- **Umum Fakultas**: {link_jadwal_umum_ft}")
 
 
                 if links_found:
                     response_text = base_response + "\n".join(links_found)
                     response_text += "\n\nJadwal biasanya dibagikan oleh masing-masing prodi. Anda juga bisa cek pengumuman di grup mahasiswa atau sistem Sevima/SIAKAD."
-                    # Tawarkan bantuan untuk prodi jika datanya ada
+                    # Tawarkan bantuan untuk prodi jika datanya ada (menggunakan helper _get_jadwal_prodi_response)
                     offer_detail_help_prodi = [p for p in available_jadwal_prodi.keys()]
                     if offer_detail_help_prodi:
                          response_text += f"\nUntuk {' atau '.join(map(escape, offer_detail_help_prodi))}, saya bisa coba bantu cek jadwal mata kuliah atau hari tertentu jika Anda bertanya lebih spesifik."
@@ -512,7 +525,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                     # Tawarkan bantuan untuk prodi jika datanya ada (walaupun tidak ada link)
                     offer_detail_help_prodi = [p for p in available_jadwal_prodi.keys()]
                     if offer_detail_help_prodi:
-                         response_text += f"\nUntuk {' atau '.join(map(escape, offer_detail_help_prodi))}, saya bisa coba bantu cek jadwal mata kuliah atau hari tertentu jika Anda bertanya lebih spesifik."
+                         response_text += f"\nJika Anda mahasiswa {' atau '.join(map(escape, offer_detail_help_prodi))}, saya bisa coba bantu cek jadwal mata kuliah atau hari tertentu jika Anda bertanya lebih spesifik."
 
                     final_intent_category = "fallback_jadwal_links_missing"
 
@@ -541,7 +554,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
             target_prodi = detected_prodi or target_prodi_from_intent # Prioritaskan prodi dari NLU
 
             response_parts = [f"{sapaan_awal_kalimat}. Mengenai laboratorium di Fakultas Teknik:"]
-            has_learning_data = bool(learning_content)
+            has_learning_data = bool(learning_content and isinstance(learning_content, dict)) # Check if learning_content is a non-empty dict
             has_fee_data = bool(ft_fees and isinstance(ft_fees.get("praktikum"), dict) and ft_fees["praktikum"]) # Check if praktikum key exists and is a non-empty dict
 
             if not has_learning_data and not has_fee_data and not detected_lab:
@@ -615,7 +628,8 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                         final_intent_category = "fallback_lab_list_missing"
                 else:
                     # Tidak ada prodi terdeteksi sama sekali (baik dari intent atau NLU)
-                    all_labs_options = list(lab_terms.keys()) # Ambil dari terms di config
+                    # Ambil dari terms di config dan pastikan terms_data valid
+                    all_labs_options = list(lab_terms.keys()) if lab_terms and isinstance(lab_terms, dict) else []
                     if all_labs_options:
                        response_parts.append("\nFakultas Teknik memiliki berbagai laboratorium untuk mendukung pembelajaran.")
                        display_count = min(len(all_labs_options), 5)
@@ -673,53 +687,86 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
             }
 
 
-            if target_prodi and target_prodi in prodi_links:
-                link = prodi_links[target_prodi]
-                info = prodi_general_info.get(target_prodi, "")
+            # Ambil daftar prodi yang tersedia di terms data (atau prodi_links jika terms kosong)
+            available_prodi_list = list(prodi_terms.keys()) if prodi_terms and isinstance(prodi_terms, dict) else list(prodi_links.keys())
+
+
+            if target_prodi and target_prodi in available_prodi_list: # Check if detected prodi is in our known list
+                link = prodi_links.get(target_prodi)
+                info = prodi_general_info.get(target_prodi, "") # Gunakan .get() untuk default jika tidak ada
+
                 response_text = f"{sapaan_awal_kalimat}. Berikut informasi umum mengenai **Prodi {escape(target_prodi)}**:"
-                if info: response_text += f"\n\n- **Fokus Utama**: {info}"
+                if info: response_text += f"\n\n- **Fokus Utama**: {escape(info)}" # Escape info
                 if link and "[GANTI" not in link and "http" in link:
                     response_text += f"\n- **Website/Info Lengkap**: {link}"
                 else:
                      response_text += f"\n- Website Prodi: (Link belum tersedia atau belum diganti)"
-                # Cek apakah ada ringkasan pembelajaran (sudah termasuk di general_info jika ada)
-                # Cek apakah ada data SPP
+
+                # Cek apakah ada data SPP untuk prodi ini
                 if config.get('SPP_DATA') and isinstance(config['SPP_DATA'], dict) and target_prodi in config['SPP_DATA']:
                      response_text += f"\n\nUntuk biaya kuliah, Anda bisa tanya 'berapa spp {escape(target_prodi)}?'."
                 # Cek apakah ada data jadwal spesifik untuk prodi ini
                 jadwal_prodi_key = f"JADWAL_{target_prodi.replace('Teknik ', '').upper()}_DATA"
-                if config.get(jadwal_prodi_key) and isinstance(config[jadwal_prodi_key], dict) and config[jadwal_prodi_key].get("jadwal_kuliah"):
-                     response_text += f"\nUntuk jadwal kuliah, Anda bisa tanya 'jadwal {escape(target_prodi)}' atau 'jadwal {escape(target_prodi.replace('Teknik ', ''))} hari senin'."
+                # Check if data exists, is a dictionary, contains "jadwal_kuliah", and that key is also a dictionary
+                if config.get(jadwal_prodi_key) and isinstance(config.get(jadwal_prodi_key), dict) and isinstance(config.get(jadwal_prodi_key).get("jadwal_kuliah"), dict) and config.get(jadwal_prodi_key).get("jadwal_kuliah"):
+                     response_text += f"\nUntuk jadwal kuliah, saya bisa coba cek detail mata kuliah atau hari tertentu jika Anda bertanya lebih spesifik (misal: 'jadwal {escape(target_prodi.replace('Teknik ', ''))} hari senin')."
+
+
+                # Cek apakah ada data pembelajaran lab spesifik untuk prodi ini
+                labs_in_prodi_with_learning = []
+                if learning_content and isinstance(learning_content, dict) and target_prodi in learning_content and isinstance(learning_content[target_prodi], dict):
+                     labs_in_prodi_with_learning = [lab for lab in learning_content[target_prodi] if not lab.startswith("_") and learning_content[target_prodi].get(lab) and isinstance(learning_content[target_prodi].get(lab), str) and learning_content[target_prodi].get(lab).strip()]
+
+                if labs_in_prodi_with_learning:
+                     response_text += f"\n\nAnda juga bisa tanya informasi mengenai lab spesifik di prodi ini (misal: 'info lab {escape(random.choice(labs_in_prodi_with_learning))}') atau materi pembelajarannya ('apa yang dipelajari di lab {escape(random.choice(labs_in_prodi_with_learning))}?')."
+
 
                 final_intent_category = f"info_prodi_{target_prodi.split()[1].lower()}_handled" # e.g., info_prodi_informatika_handled
-            elif target_prodi:
-                response_text = f"{sapaan_untuk_user}Maaf, informasi umum untuk Prodi {escape(target_prodi)} belum tersedia lengkap di data saya. Anda bisa coba cek langsung di website Fakultas Teknik UNANDA atau bertanya tentang topik lain."
-                final_intent_category = "fallback_prodi_info_missing"
-            else:
-                # Jika intent = info_prodi_* tapi tidak ada prodi terdeteksi
-                prodi_list_options = list(prodi_terms.keys()) # Ambil dari terms di config
-                if prodi_list_options:
-                     response_text = f"{sapaan_awal_kalimat}. Fakultas Teknik UNANDA saat ini memiliki program studi: **{', '.join(map(escape, prodi_list_options))}**. Prodi mana yang spesifik ingin Anda ketahui informasinya? (Contoh: 'info prodi sipil')"
+
+            elif target_prodi: # Detected prodi but not in our list of available info
+                 response_text = f"{sapaan_untuk_user}Maaf, informasi umum untuk Prodi {escape(target_prodi)} belum tersedia lengkap di data saya. "
+                 if link_prodi_informatika or link_prodi_sipil or link_prodi_tambang:
+                      response_text += "Anda bisa coba cek langsung di website Fakultas Teknik UNANDA atau bertanya tentang topik lain."
+                 else:
+                      response_text += "Anda bisa coba cek langsung di website resmi UNANDA atau bertanya tentang topik lain."
+
+                 final_intent_category = "fallback_prodi_info_missing"
+
+            else: # No prodi detected or intent was just info_prodi_
+                if available_prodi_list:
+                     response_text = f"{sapaan_awal_kalimat}. Fakultas Teknik UNANDA saat ini memiliki program studi: **{', '.join(map(escape, available_prodi_list))}**. Prodi mana yang spesifik ingin Anda ketahui informasinya? (Contoh: 'info prodi sipil')"
                      final_intent_category = "prompt_for_prodi_general"
                 else:
                      response_text = f"{sapaan_untuk_user}Maaf, daftar program studi di Fakultas Teknik belum tersedia di data saya."
                      final_intent_category = "fallback_prodi_list_missing"
 
 
+            response_text = "\n".join(filter(None, response_text.split('\n'))) # Clean up empty lines
+
+
         elif intent == "tanya_biaya_praktikum":
             # === DISAMBIGUASI / SLOT FILLING ===
+            # Ambil daftar lab yang memiliki info biaya (spesifik atau default)
+            labs_with_fee_info = []
+            if ft_fees and isinstance(ft_fees.get("praktikum"), dict) and ft_fees["praktikum"]:
+                 praktikum_fees_data = ft_fees["praktikum"]
+                 labs_with_fee_info = [lab for lab in praktikum_fees_data.keys() if not lab.startswith("_")]
+                 # Tambahkan "_default" jika ada info default
+                 if "_default" in praktikum_fees_data and isinstance(praktikum_fees_data["_default"], dict) and praktikum_fees_data["_default"]:
+                     labs_with_fee_info.append("umum/default") # Representasi untuk info umum
+
             if not detected_lab:
-                 lab_options = list(lab_terms.keys()) # Ambil dari config
-                 if lab_options:
-                     display_count = min(len(lab_options), 5)
-                     contoh_labs = random.sample(lab_options, display_count)
+                 if labs_with_fee_info:
+                     # Gunakan set untuk unik, lalu kembali ke list untuk random sample
+                     contoh_lab_list = list(set(labs_with_fee_info))
+                     contoh_display = random.sample(contoh_lab_list, min(len(contoh_lab_list), 3))
                      response_text = (f"{sapaan_awal_kalimat}, untuk memberikan informasi biaya praktikum yang lebih akurat, "
                                       f"mohon sebutkan nama laboratorium spesifiknya.\n"
-                                      f"Beberapa lab yang ada misalnya: **{', '.join(map(escape, contoh_labs))}**{ '...' if len(lab_options) > display_count else '.'}"
-                                      f"\nContoh pertanyaan: 'biaya praktikum {escape(random.choice(contoh_labs))}'")
+                                      f"Beberapa lab yang ada info biayanya (atau info umum): **{', '.join(map(escape, contoh_display))}**{ '...' if len(labs_with_fee_info) > len(contoh_display) else '.'}"
+                                      f"\nContoh pertanyaan: 'biaya praktikum {escape(random.choice(contoh_display))}'")
                      final_intent_category = "prompt_for_lab_fee"
                  else:
-                     response_text = f"{sapaan_untuk_user}Maaf, saya belum punya daftar laboratorium untuk memeriksa biaya praktikum. Silakan hubungi bagian akademik/lab terkait."
+                     response_text = f"{sapaan_untuk_user}Maaf, saya belum punya daftar laboratorium dengan informasi biaya praktikum. Silakan hubungi bagian akademik/lab terkait."
                      final_intent_category = "fallback_lab_terms_missing_for_fee"
             # =====================================
             elif not ft_fees or not isinstance(ft_fees.get("praktikum"), dict) or not ft_fees["praktikum"]:
@@ -735,11 +782,12 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                 # Cari info spesifik lab, fallback ke default jika tidak ada
                 info = biaya_praktikum_info.get(lab_name, biaya_praktikum_info.get("_default"))
 
-                if lab_name in biaya_praktikum_info: response_parts.append(f"\nUntuk praktikum **{escape(lab_name)}**:")
-                elif info: response_parts.append(f"\nUntuk praktikum **{escape(lab_name)}** (menggunakan info biaya umum):")
-                else: response_parts.append(f"\nMaaf, info biaya spesifik untuk **{escape(lab_name)}** belum tersedia, dan info umum juga tidak ada."); info = None # Pastikan info None jika tidak ada sama sekali
-
                 if info and isinstance(info, dict): # Pastikan info yang ditemukan adalah dictionary
+                    if lab_name in biaya_praktikum_info: response_parts.append(f"\nUntuk praktikum **{escape(lab_name)}**:")
+                    elif "_default" in biaya_praktikum_info and info is biaya_praktikum_info["_default"]: response_parts.append(f"\nUntuk praktikum **{escape(lab_name)}** (menggunakan info biaya umum):")
+                    else: response_parts.append(f"\nInformasi biaya untuk **{escape(lab_name)}** ditemukan, tetapi tidak spesifik lab ini."); # Fallback jika ada info tapi bukan spesifik/default
+                    # Kalaupun tidak ada info spesifik atau default, akan masuk sini jika info tidak None (kasus aneh)
+
                     details = []
                     biaya_partisipasi = info.get('amount')
                     biaya_ujian = info.get('ujian_akhir_praktikum_amount')
@@ -752,21 +800,12 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                     if biaya_text_parts: response_parts.append(f"- {', ditambah '.join(biaya_text_parts)}.")
                     else: response_parts.append("- Detail komponen biaya (partisipasi/ujian) belum tersedia.")
 
-                    response_parts.append(f"- *Catatan: {notes}*")
+                    if notes: response_parts.append(f"- *Catatan: {notes}*")
                     final_intent_category = "tanya_biaya_praktikum_handled"
                 else:
                      # Jika info tidak ketemu atau formatnya salah
-                     if lab_name in biaya_praktikum_info and not isinstance(biaya_praktikum_info[lab_name], dict):
-                         print(f"WARNING: Data biaya praktikum untuk '{lab_name}' ada tapi formatnya salah.")
-                     elif not info: # Jika info spesifik dan default tidak ada
-                          pass # Response sudah dibuat di atas
-                     else: # Jika info ada tapi formatnya salah (misal default ada tapi bukan dict)
-                          print(f"WARNING: Data biaya praktikum default ada tapi formatnya salah.")
-                          response_parts.append("Informasi detail biaya praktikum saat ini tidak tersedia dalam format yang benar.")
-
-
-                     if final_intent_category == intent: # Jika belum di-override di atas (berarti fallback)
-                         final_intent_category = "fallback_lab_fee_details_missing"
+                     response_parts.append(f"\nMaaf, informasi detail biaya praktikum untuk **{escape(lab_name)}** belum tersedia atau tidak valid di data saya.")
+                     final_intent_category = "fallback_lab_fee_details_missing"
 
 
                 response_text = "\n".join(filter(None, response_parts))
@@ -782,7 +821,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                   final_intent_category = "kontak_ft_handled"
 
 
-        # --- Handler PMB ---
+        # --- Handler PMB (Tidak perlu disambiguasi entitas utama di sini) ---
         elif intent == "info_pmb_umum":
             if not pmb_info or not isinstance(pmb_info, dict):
                 response_text = f"Maaf {sapaan_untuk_user}, informasi Penerimaan Mahasiswa Baru (PMB) tidak dapat dimuat saat ini. Silakan cek website resmi UNANDA."
@@ -887,7 +926,8 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
             prodi_options_with_learning_summary = []
             if learning_content and isinstance(learning_content, dict):
                  for prodi, content in learning_content.items():
-                      if not prodi.startswith("_") and isinstance(content, dict) and content.get("_prodi_summary") and isinstance(content["_prodi_summary"], str) and content["_prodi_summary"].strip():
+                      # Check if prodi is not an internal key and has a non-empty string summary
+                      if not prodi.startswith("_") and isinstance(content, dict) and content.get("_prodi_summary") and isinstance(content.get("_prodi_summary"), str) and content["_prodi_summary"].strip():
                            prodi_options_with_learning_summary.append(prodi)
 
             if not detected_prodi:
@@ -906,10 +946,11 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                  # Logika asli jika prodi terdeteksi
                 prodi_info = learning_content.get(detected_prodi)
                 prodi_summary = None
-                if prodi_info and isinstance(prodi_info, dict):
-                     prodi_summary = prodi_info.get("_prodi_summary")
+                # Check if prodi_info exists, is a dictionary, and has a non-empty string summary
+                if prodi_info and isinstance(prodi_info, dict) and prodi_info.get("_prodi_summary") and isinstance(prodi_info.get("_prodi_summary"), str):
+                     prodi_summary = prodi_info.get("_prodi_summary").strip()
 
-                if prodi_summary and isinstance(prodi_summary, str) and prodi_summary.strip():
+                if prodi_summary:
                     response_text = (f"{sapaan_awal_kalimat}. Secara garis besar, di **Prodi {escape(detected_prodi)}**, mahasiswa akan mempelajari berbagai hal terkait bidangnya. "
                                         f"Berikut adalah ringkasan fokus pembelajarannya:\n\n{escape(prodi_summary)}\n\n" # Escape summary
                                         "Tentu saja ini gambaran umum. Mata kuliah spesifik akan dipelajari per semester sesuai kurikulum. "
@@ -923,13 +964,15 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
 
         elif intent == "tanya_pembelajaran_lab":
             # === DISAMBIGUASI / SLOT FILLING ===
+            # Ambil daftar lab yang memiliki deskripsi pembelajaran
+            all_labs_with_desc = []
+            if learning_content and isinstance(learning_content, dict):
+                for prodi, content in learning_content.items():
+                     if isinstance(content, dict):
+                          # Ambil lab yang punya deskripsi (string non-kosong)
+                          all_labs_with_desc.extend([lab for lab in content.keys() if not lab.startswith("_") and content.get(lab) and isinstance(content.get(lab), str) and content.get(lab).strip()]) # Use .keys() and .get() safely
+
             if not detected_lab:
-                 all_labs_with_desc = []
-                 if learning_content and isinstance(learning_content, dict):
-                     for prodi, content in learning_content.items():
-                          if isinstance(content, dict):
-                               # Ambil lab yang punya deskripsi (string non-kosong)
-                               all_labs_with_desc.extend([lab for lab in content if not lab.startswith("_") and content.get(lab) and isinstance(content[lab], str) and content[lab].strip()])
                  if all_labs_with_desc:
                      # Gunakan set untuk unik, lalu kembali ke list untuk random sample
                      contoh_lab_list = list(set(all_labs_with_desc))
@@ -952,6 +995,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                 lab_description = None
                 target_prodi_for_lab = None # Prodi yang deskripsi labnya diambil
                 for prodi, content in learning_content.items():
+                    # Check if content is a dictionary before checking for lab
                     if isinstance(content, dict) and detected_lab in content:
                         desc = content.get(detected_lab)
                         # Pastikan deskripsi valid (string non-kosong)
@@ -959,11 +1003,11 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                             possible_prodi_owners.append(prodi)
                             # Prioritaskan prodi yang terdeteksi dari NLU jika ada
                             if detected_prodi and detected_prodi == prodi:
-                                lab_description = desc
+                                lab_description = desc.strip()
                                 target_prodi_for_lab = prodi
                                 break # Sudah ketemu deskripsi dari prodi yang relevan
                             elif not lab_description: # Ambil deskripsi pertama yang ditemukan jika prodi tidak terdeteksi
-                                lab_description = desc
+                                lab_description = desc.strip()
                                 target_prodi_for_lab = prodi
 
                 if lab_description:
@@ -996,13 +1040,14 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
                  # Daftarkan intent yang ada di model tapi belum ditangani spesifik di atas
                  # Contoh: "info_dosen", "info_kurikulum"
             ]
-            if intent in known_intents_without_handlers:
+            # Use get('intent') safely as it might be None
+            if intent and intent in known_intents_without_handlers:
                  response_text = (f"Saya mengerti Anda bertanya tentang '{escape(intent.replace('_', ' '))}' ({score*100:.1f}%). "
                                   f"Namun, saya belum memiliki informasi detail atau tindakan spesifik untuk topik tersebut saat ini. "
                                   "Mungkin Anda bisa bertanya tentang topik lain seperti biaya, pendaftaran, jadwal, atau prodi?")
             else:
                 # Ini kasus sangat jarang, intent tidak umum atau salah deteksi
-                response_text = (f"Saya mendeteksi niat '{escape(intent.replace('_', ' '))}' ({score*100:.1f}%) dari pertanyaan Anda, "
+                response_text = (f"Saya mendeteksi niat '{escape(intent.replace('_', ' ')) if intent else 'Tidak Dikenali'}' ({score*100:.1f}%) dari pertanyaan Anda, " # Use ternary for intent
                                  "tapi saya belum diprogram untuk menjawab topik tersebut. "
                                  "Mohon ajukan pertanyaan lain yang terkait Fakultas Teknik UNANDA.")
 
@@ -1011,6 +1056,7 @@ def get_response_for_intent(nlu_result, user_name, original_text, config):
     # Logika ini sudah dipindahkan ke app.py sebelum memanggil get_response_for_intent
 
     # Kembalikan teks respons dan kategori intent final
+    # Pastikan final_intent_category sudah di-set dengan benar di setiap cabang logika
     return response_text, final_intent_category
 
 # --- END OF FILE intent_logic.py ---

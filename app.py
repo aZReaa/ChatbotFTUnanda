@@ -58,6 +58,7 @@ DOMAIN_KEYWORDS = set([
     "kampus", "akademik", "semester", "ujian", "skripsi", "gedung", "kontak",
     "tu", "tata usaha", "bayar", "pembayaran", "alur", "syarat", "prosedur",
     "fasilitas", "website", "link", "kurikulum", "silabus", "kaprodi", "dekan",
+    # Tambahkan keyword domain lain jika relevan
 ])
 OOS_KEYWORDS = set([
     "cuaca", "resep", "masak", "film", "bioskop", "politik", "bola", "sepakbola",
@@ -66,6 +67,7 @@ OOS_KEYWORDS = set([
     "tempat makan", "peta", "lokasi", "arah", "jalan ke", "presiden", "gubernur",
     "pemilu", "artis", "gosip", "selebriti", "main", "game", "nonton", "anime",
     "ramalan", "horoskop", "mimpi", "agama", "cerpen", "puisi", "novel", "olahraga"
+    # Tambahkan keyword out-of-scope lain jika perlu
 ])
 MIN_LEN_FOR_NO_DOMAIN_OOS = 4 # Minimal panjang input tanpa keyword domain untuk dianggap OOS potensial
 
@@ -976,6 +978,8 @@ if __name__ == "__main__":
         print("--- Server Siap Dijalankan ---")
 
 
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Gunakan host='0.0.0.0' agar bisa diakses dari luar container/VM jika perlu
+    # Gunakan port=5000 (default Flask) atau ganti sesuai kebutuhan
+    # app.run(debug=True, host='0.0.0.0', port=5000) # Komentari atau hapus ini jika menggunakan gunicorn/lainnya
 
 # --- END OF CLEANED FILE app.py ---
