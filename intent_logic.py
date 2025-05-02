@@ -49,8 +49,8 @@ def _get_jadwal_prodi_response(original_text_lower, prodi_name, user_name, confi
     # Mapping nama prodi kanonikal ke key config dan short name
     prodi_mapping = {
         "Teknik Informatika": {"data_key": "JADWAL_TI_DATA", "link_key": "LINK_JADWAL_TI", "short_name": "TI"},
-        "Teknik Sipil": {"data_key": "JADWAL_SIPIL_DATA", "link_key": "LINK_JADWAL_SIPIL", "short_name": "Sipil"},
-        "Teknik Pertambangan": {"data_key": "JADWAL_TAMBANG_DATA", "link_key": "LINK_JADWAL_TAMBANG", "short_name": "Tambang"}
+        "Teknik Sipil": {"data_key": "JADWAL_SIPIL_DATA", "link_key": "LINK_JADWAL_SIPIL", "short_name": "sipil"},
+        "Teknik Pertambangan": {"data_key": "JADWAL_TAMBANG_DATA", "link_key": "LINK_JADWAL_TAMBANG", "short_name": "TP"}
     }
 
     prodi_info = prodi_mapping.get(prodi_name)
