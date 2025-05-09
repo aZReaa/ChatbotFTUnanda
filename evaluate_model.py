@@ -13,7 +13,7 @@ def split_data(data, train_ratio=0.8):
     return train_data, test_data
 
 # Load dataset yang sudah diseimbangkan
-with open("final_training_data_balanced.json", 'r', encoding='utf-8') as f:
+with open("trainfix.json", 'r', encoding='utf-8') as f:
     data = json.load(f)
 
 # Pisahkan data menjadi train dan test set
